@@ -6,6 +6,8 @@
 # Folders
 _obj
 _test
+.gradle
+build
 
 # Architecture specific extensions/prefixes
 *.[568vq]
