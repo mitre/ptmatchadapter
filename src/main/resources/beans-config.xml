@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:util="http://www.springframework.org/schema/util"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+
+  <bean id="fhirContext" class="ca.uhn.fhir.context.FhirContext" 
+      factory-method="forDstu2Hl7Org" />
+
+  <bean id="fhirRestClientFactory"
+      factory-bean="fhirContext" factory-method="getRestfulClientFactory">
+    <property name="serverValidationMode" >
+      <value type="ca.uhn.fhir.rest.client.ServerValidationModeEnum">NEVER</value>
+    </property>
+  </bean>
+
+  <bean id="fhirRestClient" 
+      factory-bean="fhirRestClientFactory" factory-method="newGenericClient">
+   <!-- URL string to the server from which to request messages. 
+        Include scheme, host name + port + root path -->
+      <constructor-arg value="http://localhost:8881" />
+  </bean>
+  
+  <bean id="msgRetriever" class="org.mitre.ptmatchadapter.MessageRetriever">
+   <property name="client" ref="fhirRestClient"/>
+   <property name="destinationUri" value="http://acme.com/record-matcher"/>
+  </bean>
+
+  <bean id="requestHandler" class="org.mitre.ptmatchadapter.RecordMatchRequestProcessor" >
+    <property name="producerEndpointUri" value="seda:msgOutbox" />
+  </bean>
+  
+  <bean id="resultSender" class="org.mitre.ptmatchadapter.ResultSender">
+   <property name="client" ref="fhirRestClient"/>
+  </bean>
+</beans>
