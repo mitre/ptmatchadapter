@@ -32,7 +32,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class SearchResultSplitter {
-  private static final Logger LOG = LoggerFactory.getLogger(SearchResultSplitter.class);
+  private static final Logger LOG = LoggerFactory
+      .getLogger(SearchResultSplitter.class);
 
   /**
    * Breaks apart the given bundle into a list of Resources.
@@ -42,19 +43,23 @@ public class SearchResultSplitter {
    * @return a list containing each resource in the Bundle
    */
   public List<Resource> splitBundle(Bundle bundle) {
-    final List<BundleEntryComponent> entries = bundle.getEntry();
-
     final List<Resource> resources = new LinkedList<Resource>();
-    for (BundleEntryComponent entry : entries) {
-      Resource r = entry.getResource();
-      if (r != null) {
-        LOG.debug("processing resource: " + r.getId());
-        resources.add(r);
-      } else {
-        LOG.warn("Entry does not have a resource, fullUrl: {}", entry.getFullUrl());
+    
+    if (bundle != null) {
+      final List<BundleEntryComponent> entries = bundle.getEntry();
+
+      for (BundleEntryComponent entry : entries) {
+        Resource r = entry.getResource();
+        if (r != null) {
+          LOG.debug("processing resource: " + r.getId());
+          resources.add(r);
+        } else {
+          LOG.warn("Entry does not have a resource, fullUrl: {}",
+              entry.getFullUrl());
+        }
       }
     }
-
+    
     return resources;
   }
 }
