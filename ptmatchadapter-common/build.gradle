@@ -1,0 +1,21 @@
+
+jar {
+  baseName = 'ptmatchadapter-common'
+  version = '0.0.1-SNAPSHOT'
+}
+
+
+dependencies {
+  compile "org.apache.camel:camel-core:${camelVersion}"
+  compile "org.slf4j:slf4j-api:${slf4jVersion}"
+  
+  compile "org.springframework:spring-beans:${springVersion}"
+  compile "org.springframework:spring-context:${springVersion}"
+
+  compile "ca.uhn.hapi.fhir:hapi-fhir-base:${hapiFhirVersion}"
+  compile "ca.uhn.hapi.fhir:hapi-fhir-structures-hl7org-dstu2:${hapiFhirVersion}"
+  compile "org.mongodb:bson:${mongodbVersion}"
+  compile "joda-time:joda-time:2.2"
+  testCompile "junit:junit:${junitVersion}"
+}
+
