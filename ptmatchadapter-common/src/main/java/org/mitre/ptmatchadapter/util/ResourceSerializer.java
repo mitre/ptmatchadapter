@@ -17,8 +17,6 @@
 package org.mitre.ptmatchadapter.util;
 
 import org.hl7.fhir.instance.model.BaseResource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
@@ -27,7 +25,6 @@ import ca.uhn.fhir.parser.IParser;
  * @author Michael Los, mel@mitre.org
  *
  */
-@Component
 public class ResourceSerializer {
   private static final String XML = "xml";
 
@@ -35,9 +32,12 @@ public class ResourceSerializer {
 
   private boolean prettyPrint = true;
 
-  @Autowired
   private FhirContext fhirContext;
 
+  public ResourceSerializer(FhirContext fhirContext) {
+    setFhirContext(getFhirContext());
+  }
+  
   public String toString(BaseResource r) {
     IParser parser;
 

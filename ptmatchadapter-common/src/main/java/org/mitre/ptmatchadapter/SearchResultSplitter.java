@@ -24,13 +24,11 @@ import org.hl7.fhir.instance.model.Bundle.BundleEntryComponent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.hl7.fhir.instance.model.Resource;
-import org.springframework.stereotype.Component;
 
 /**
  * @author Michael Los, mel@mitre.org
  *
  */
-@Component
 public class SearchResultSplitter {
   private static final Logger LOG = LoggerFactory
       .getLogger(SearchResultSplitter.class);

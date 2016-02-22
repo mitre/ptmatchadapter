@@ -67,10 +67,10 @@ public class MessageRetriever {
  //     sb.append(df.format(d));
 
       final IQuery<Bundle> query = client.search()
-      //.byUrl(sb.toString())
-      .forResource(Bundle.class)
+      .byUrl(sb.toString())
+      //.forResource(Bundle.class)
         //  .encodedJson() // results in _format query parameter, which is not supported by Intervention Engine FHIR Server
-         .lastUpdated(new DateRangeParam(d, null))  // 2/10/16 - IE FHIR Server doesn't support date comparison operator
+         //.lastUpdated(new DateRangeParam(d, null))  // 2/10/16 - IE FHIR Server doesn't support date comparison operator
 //          .where((new StringClientParam(Bundle.SP_TYPE)).matches().value(BundleTypeEnum.MESSAGE.toString()))
 //          .and(Patient.CAREPROVIDER.hasChainedProperty(Organization.NAME.matches().value(destinationUri)))
 //          .and(Patient.CAREPROVIDER.hasChainedProperty(Organization.NAME.matches().value("Health")))

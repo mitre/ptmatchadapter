@@ -28,7 +28,6 @@ import org.hl7.fhir.instance.model.MessageHeader.MessageDestinationComponent;
 import org.hl7.fhir.instance.model.MessageHeader.MessageHeaderResponseComponent;
 import org.hl7.fhir.instance.model.MessageHeader.MessageSourceComponent;
 import org.hl7.fhir.instance.model.MessageHeader.ResponseType;
-import org.springframework.stereotype.Component;
 
 /**
  * Constructs a response message that constructs an acknowledgement message for
@@ -37,12 +36,11 @@ import org.springframework.stereotype.Component;
  * @author Michael Los, mel@mitre.org
  *
  */
-@Component
 public class AcknowledgmentBuilder {
 
   private String sourceName = "Unknown";
   
-  private String sourceEndpoint = "http://acme.com/record-matcher";
+  private String sourceEndpointUri = "http://acme.com/record-matcher";
   
   public Bundle build(Bundle request) {
     if (BundleType.MESSAGE.equals(request.getType())) {
@@ -76,7 +74,7 @@ public class AcknowledgmentBuilder {
 
     final MessageSourceComponent src = new MessageSourceComponent();
     src.setName(sourceName);
-    src.setEndpoint(sourceEndpoint);
+    src.setEndpoint(sourceEndpointUri);
     msgHdr.setSource(src);
     
     // the source of the request is our destination
@@ -97,17 +95,17 @@ public class AcknowledgmentBuilder {
   }
 
   /**
-   * @return the sourceEndpoint
+   * @return the sourceEndpointUri
    */
-  public final String getSourceEndpoint() {
-    return sourceEndpoint;
+  public final String getSourceEndpointUri() {
+    return sourceEndpointUri;
   }
 
   /**
-   * @param sourceEndpoint the sourceEndpoint to set
+   * @param endpointUri the endpointUri to set
    */
-  public final void setSourceEndpoint(String sourceEndpoint) {
-    this.sourceEndpoint = sourceEndpoint;
+  public final void setSourceEndpointUri(String endpointUri) {
+    this.sourceEndpointUri = endpointUri;
   }
 
   /**

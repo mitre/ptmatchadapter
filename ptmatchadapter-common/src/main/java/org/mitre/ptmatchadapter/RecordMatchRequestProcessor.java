@@ -28,13 +28,10 @@ import org.hl7.fhir.instance.model.Parameters;
 import org.hl7.fhir.instance.model.Parameters.ParametersParameterComponent;
 import org.hl7.fhir.instance.model.Resource;
 import org.hl7.fhir.instance.model.ResourceType;
-import org.hl7.fhir.instance.model.Type;
 import org.mitre.ptmatchadapter.recordmatch.RecordMatchResultsBuilder;
 import org.mitre.ptmatchadapter.util.ParametersUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import ca.uhn.fhir.rest.client.IGenericClient;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
@@ -45,15 +42,12 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
  * @author Michael Los, mel@mitre.org
  *
  */
-@Component
 public class RecordMatchRequestProcessor {
   private static final Logger LOG = LoggerFactory
       .getLogger(RecordMatchRequestProcessor.class);
 
-  @Autowired
   private ProducerTemplate producer;
 
-  @Autowired
   private IGenericClient fhirRestClient;
 
   private String producerEndpointUri;
@@ -243,6 +237,27 @@ public class RecordMatchRequestProcessor {
    */
   public final void setProducerEndpointUri(String producerEndpointUri) {
     this.producerEndpointUri = producerEndpointUri;
+  }
+
+  /**
+   * @return the fhirRestClient
+   */
+  public final IGenericClient getFhirRestClient() {
+    return fhirRestClient;
+  }
+
+  /**
+   * @param fhirRestClient the fhirRestClient to set
+   */
+  public final void setFhirRestClient(IGenericClient fhirRestClient) {
+    this.fhirRestClient = fhirRestClient;
+  }
+
+  /**
+   * @return the producer
+   */
+  public final ProducerTemplate getProducer() {
+    return producer;
   }
 
 }

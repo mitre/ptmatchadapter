@@ -24,13 +24,11 @@ import org.hl7.fhir.instance.model.Coding;
 import org.hl7.fhir.instance.model.MessageHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * @author Michael Los, mel@mitre.org
  *
  */
-@Component
 public class RecordMatchRequestPassFilter {
   private static final Logger LOG = LoggerFactory.getLogger(RecordMatchRequestPassFilter.class);
 

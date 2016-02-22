@@ -19,13 +19,11 @@ package org.mitre.ptmatchadapter;
 import org.hl7.fhir.instance.model.Bundle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * @author Michael Los, mel@mitre.org
  *
  */
-@Component
 public class RecordMatchRequestAccepter {
   private static final Logger LOG = 
       LoggerFactory.getLogger(RecordMatchRequestAccepter.class);

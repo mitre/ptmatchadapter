@@ -25,13 +25,11 @@ import org.hl7.fhir.instance.model.ResourceType;
 import org.hl7.fhir.instance.model.Bundle.BundleType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * @author Michael Los, mel@mitre.org
  *
  */
-@Component
 public class DuplicateMessageFilter {
   private static final Logger LOG    = LoggerFactory.getLogger(DuplicateMessageFilter.class);
 
