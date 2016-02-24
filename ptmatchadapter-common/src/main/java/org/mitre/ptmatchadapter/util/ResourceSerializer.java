@@ -17,6 +17,10 @@
 package org.mitre.ptmatchadapter.util;
 
 import org.hl7.fhir.instance.model.BaseResource;
+import org.hl7.fhir.instance.model.Resource;
+import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
@@ -26,6 +30,8 @@ import ca.uhn.fhir.parser.IParser;
  *
  */
 public class ResourceSerializer {
+  private static final Logger LOG = LoggerFactory.getLogger(ResourceSerializer.class);
+  
   private static final String XML = "xml";
 
   private String format = "json";
@@ -35,10 +41,27 @@ public class ResourceSerializer {
   private FhirContext fhirContext;
 
   public ResourceSerializer(FhirContext fhirContext) {
-    setFhirContext(getFhirContext());
+    setFhirContext(fhirContext);
   }
   
   public String toString(BaseResource r) {
+    final IParser parser = getParser();
+
+    return parser.encodeResourceToString(r);
+  }
+
+  public Resource toResource(String str) {
+    Resource result = null;
+    final IParser parser = getParser();
+
+    final IBaseResource r = parser.parseResource(str);
+    if (r instanceof Resource) {
+      result = (Resource) r;
+    }
+    return result;
+  }
+
+  private IParser getParser() {
     IParser parser;
 
     if (XML.equalsIgnoreCase(format)) {
@@ -47,8 +70,7 @@ public class ResourceSerializer {
       // use JSON by default
       parser = fhirContext.newJsonParser().setPrettyPrint(prettyPrint);
     }
-
-    return parser.encodeResourceToString(r);
+    return parser;
   }
 
   /**
