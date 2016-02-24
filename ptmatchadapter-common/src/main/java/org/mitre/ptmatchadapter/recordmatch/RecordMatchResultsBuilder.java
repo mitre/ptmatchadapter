@@ -30,7 +30,6 @@ import org.hl7.fhir.instance.model.MessageHeader.MessageHeaderResponseComponent;
 import org.hl7.fhir.instance.model.MessageHeader.MessageSourceComponent;
 import org.hl7.fhir.instance.model.MessageHeader.ResponseType;
 import org.hl7.fhir.instance.model.OperationOutcome.OperationOutcomeIssueComponent;
-import org.hl7.fhir.instance.model.valuesets.IssueType;
 import org.hl7.fhir.instance.model.MessageHeader;
 
 /**
