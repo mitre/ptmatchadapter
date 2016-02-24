@@ -1,3 +1,4 @@
 include ':ptmatchadapter-common'
 include 'examples:no-op-match'
-
+include 'examples:resourceLoader'
+include 'examples:resourceRetriever'

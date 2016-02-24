@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:util="http://www.springframework.org/schema/util"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+
+  <bean id="fhirContext" class="ca.uhn.fhir.context.FhirContext" 
+      factory-method="forDstu2Hl7Org" />
+
+  <bean id="fhirRestClientFactory"
+      factory-bean="fhirContext" factory-method="getRestfulClientFactory">
+    <property name="serverValidationMode" >
+      <value type="ca.uhn.fhir.rest.client.ServerValidationModeEnum">NEVER</value>
+    </property>
+  </bean>
+
+  <bean id="destFhirRestClient" 
+      factory-bean="fhirRestClientFactory" factory-method="newGenericClient">
+   <!-- URL string to the server from which to request messages. 
+        Include scheme, host name + port + root path -->
+      <constructor-arg value="${dest.fhir.server.base}" />
+  </bean>
+
+  <!-- we use the antpath file filter to use ant paths for includes and exclude -->
+  <bean id="fhirFileFilter" class="org.apache.camel.component.file.AntPathMatcherGenericFileFilter">
+    <!-- include file with xml and json extentions -->
+    <property name="includes" value="**/*.json,/**/*.json"/>
+    <!-- property name="excludes" value="**/*bad*,**/*.xml"/ -->
+</bean>
+
+  <bean id="searchResultSplitter" 
+      class="org.mitre.ptmatchadapter.SearchResultSplitter"/>
+
+
+  <bean id="resourceSender" class="org.mitre.ptmatchadapter.ResourceSender">
+   <property name="client" ref="destFhirRestClient"/>
+  </bean>
+
+  <bean id="resourceSerializer" class="org.mitre.ptmatchadapter.util.ResourceSerializer">
+    <constructor-arg name="fhirContext" ref="fhirContext"/>
+    <property name="format" value="json"/>
+    <property name="prettyPrint" value="true"/>
+  </bean>
+</beans>
