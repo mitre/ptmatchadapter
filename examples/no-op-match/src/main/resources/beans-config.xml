@@ -40,7 +40,7 @@
       class="org.mitre.ptmatchadapter.SearchResultSplitter"/>
 
 
-  <bean id="requestHandler" class="org.mitre.ptmatchadapter.RecordMatchRequestProcessor" >
+  <bean id="requestHandler" class="org.mitre.ptmatchadapter.NoOpRecordMatchRequestProcessor" >
     <property name="producerEndpointUri" value="seda:msgOutbox" />
     <property name="producer" ref="producerTemplate"/>
     <property name="fhirRestClient" ref="fhirRestClient"/>

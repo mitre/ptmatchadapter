@@ -16,11 +16,6 @@
  */
 package org.mitre.ptmatchadapter;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Calendar;
 import java.util.List;
 
 import org.apache.camel.ProducerTemplate;
@@ -31,10 +26,8 @@ import org.hl7.fhir.instance.model.Bundle.BundleType;
 import org.hl7.fhir.instance.model.MessageHeader.ResponseType;
 import org.hl7.fhir.instance.model.Parameters;
 import org.hl7.fhir.instance.model.Parameters.ParametersParameterComponent;
-import org.hl7.fhir.instance.model.Patient;
 import org.hl7.fhir.instance.model.Resource;
 import org.hl7.fhir.instance.model.ResourceType;
-import org.mitre.ptmatchadapter.format.SimplePatientCsvFormat;
 import org.mitre.ptmatchadapter.recordmatch.RecordMatchResultsBuilder;
 import org.mitre.ptmatchadapter.util.ParametersUtil;
 import org.slf4j.Logger;
@@ -49,9 +42,9 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
  * @author Michael Los, mel@mitre.org
  *
  */
-public class RecordMatchRequestProcessor {
+public class NoOpRecordMatchRequestProcessor {
   private static final Logger LOG = LoggerFactory
-      .getLogger(RecordMatchRequestProcessor.class);
+      .getLogger(NoOpRecordMatchRequestProcessor.class);
 
   private ProducerTemplate producer;
 
@@ -59,15 +52,20 @@ public class RecordMatchRequestProcessor {
 
   private String producerEndpointUri;
 
-  /** Path to the folder in which to write the FRIL data source(s). */
-  private String dataSourceDir;
-
   private static final String MASTER = "master";
   private static final String QUERY = "query";
   private static final String RESOURCE_TYPE = "resourceType";
   private static final String SEARCH_EXPR = "searchExpression";
   private static final String RESOURCE_URL = "resourceUrl";
 
+  /**
+   * Constructs invokes a single request for the search queries and then generates
+   * a record-match result message that reports zero matches found.  The 
+   * responses to the REST calls for the master and, when provided, query record
+   * sets are ignored.
+   * 
+   * @param bundle  record-match request to process
+   */
   public void process(Bundle bundle) {
     if (BundleType.MESSAGE.equals(bundle.getType())) {
       final List<BundleEntryComponent> bundleEntries = bundle.getEntry();
@@ -76,13 +74,10 @@ public class RecordMatchRequestProcessor {
         final MessageHeader msgHdr = (MessageHeader) bundleEntries.get(0)
             .getResource();
 
-        Parameters masterQryParams = null;
-        Parameters queryQryParams = null;
+        Resource masterQryParams = null;
+        Resource queryQryParams = null;
         String masterSearchUrl = null;
         String querySearchUrl = null;
-        String masterServerBase = null;
-        String queryServerBase = null;
-        String resourceType = "Patient";
 
         // Find the Parameters resources that contain the search parameters
         // and use those to construct search Urls
@@ -92,24 +87,16 @@ public class RecordMatchRequestProcessor {
           if (ResourceType.Parameters.equals(r.getResourceType())) {
             Parameters params = (Parameters) r;
             List<ParametersParameterComponent> paramList = params.getParameter();
-            // Now look for the parameter with name, resourceType.
             ParametersParameterComponent p = ParametersUtil.findByName(paramList,
-                RESOURCE_TYPE);
-            if (p != null) {
-              resourceType = p.getValue().toString();
-            }
-            // Find parameter that distinguises between master and query sets
-            p = ParametersUtil.findByName(paramList, "type");
+                "type");
             if (p != null) {
               String val = p.getValue().toString();
               if (val.equalsIgnoreCase(MASTER)) {
                 masterQryParams = params;
                 masterSearchUrl = buildSearchUrl(params);
-                masterServerBase = getServerBase(resourceType, masterQryParams);
               } else if (val.equalsIgnoreCase(QUERY)) {
                 queryQryParams = params;
                 querySearchUrl = buildSearchUrl(params);
-                queryServerBase = getServerBase(resourceType, queryQryParams);
               }
             }
           }
@@ -132,56 +119,22 @@ public class RecordMatchRequestProcessor {
         }
         try {
           // Retrieve the data associated with the search urls
-          IQuery<Bundle> query = fhirRestClient.search().byUrl(masterSearchUrl)
-              .returnBundle(Bundle.class);
+          IQuery<Bundle> query = fhirRestClient.search()
+              .byUrl(masterSearchUrl).returnBundle(Bundle.class);
 
           // Perform a search
           final Bundle masterSetResults = query.execute();
 
-          // Split the bundle into its component resources
-          final SearchResultSplitter resultSplitter = new SearchResultSplitter();
-          final List<Resource> masterResources = resultSplitter
-              .splitBundle(masterSetResults);
-
-          // Create a CSV data source for FRIL
-          String fname = createDataSourceFileName(dataSourceDir, "master");
-          final File masterFile = new File(fname);
-          writeData(masterFile, masterResources, masterServerBase);
-
-          // retrieve other pages of search results
-          Bundle nextResults = masterSetResults;
-          while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
-            nextResults = fhirRestClient.loadPage().next(nextResults).execute();
-            List<Resource> nextResources = resultSplitter.splitBundle(nextResults);
-            writeData(masterFile, nextResources, masterServerBase);
-          }
-
           Bundle querySetResults = null;
           if (querySearchUrl != null) {
             // Retrieve the data associated with the search urls
-            query = fhirRestClient.search().byUrl(querySearchUrl)
-                .returnBundle(Bundle.class);
+            query = fhirRestClient.search()
+                .byUrl(querySearchUrl).returnBundle(Bundle.class);
 
             // Perform a search
             querySetResults = query.execute();
-
-            // Split the bundle into its component resources
-            final List<Resource> queryResources = resultSplitter
-                .splitBundle(querySetResults);
-
-            // Create a CSV data source for FRIL
-            fname = createDataSourceFileName(dataSourceDir, "query");
-            final File queryFile = new File(fname);
-            writeData(queryFile, queryResources, queryServerBase);
-
-            nextResults = querySetResults;
-            while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
-              nextResults = fhirRestClient.loadPage().next(nextResults).execute();
-              List<Resource> nextResources = resultSplitter.splitBundle(nextResults);
-              writeData(queryFile, nextResources, queryServerBase);
-            }
           }
-
+          
         } catch (BaseServerResponseException e) {
           LOG.warn(String.format("Error response from server.  code: %d, %s",
               e.getStatusCode(), e.getMessage()));
@@ -194,12 +147,8 @@ public class RecordMatchRequestProcessor {
           }
         }
 
-        // TODO Perform the Match Operation
-        
-        
-        // TODO Construct results 
-        final RecordMatchResultsBuilder builder = new RecordMatchResultsBuilder(
-            bundle, ResponseType.OK);
+        final RecordMatchResultsBuilder builder = new RecordMatchResultsBuilder(bundle,
+            ResponseType.OK);
         builder.outcomeIssueDiagnostics("No Matches Found");
         final Bundle result = builder.build();
 
@@ -238,7 +187,6 @@ public class RecordMatchRequestProcessor {
             .getParameter();
 
         String resourceUrl = null;
-        String resourceType = null;
         final StringBuilder queryExpr = new StringBuilder(100);
         // all parameters except resourceUrl contribute to the query expression
         for (ParametersParameterComponent searchExprParam : searchExprParamList) {
@@ -262,8 +210,7 @@ public class RecordMatchRequestProcessor {
         }
 
         if (resourceUrl == null) {
-          LOG.warn(
-              "Reqeuired parameter, resourceUrl, is missing from record-match request!");
+          LOG.warn("Reqeuired parameter, resourceUrl, is missing!");
         } else {
           searchUrl.append(resourceUrl);
           searchUrl.append("?");
@@ -275,144 +222,6 @@ public class RecordMatchRequestProcessor {
       LOG.warn("Unable to find search expression in message parameters");
     }
     return searchUrl.toString();
-  }
-
-  private String getServerBase(String resourceType, Parameters params) {
-    String serverBase = null;
-
-    String resourceUrl = getResourceUrl(params);
-
-    if (resourceUrl != null) {
-      int pos = resourceUrl.lastIndexOf(resourceType);
-
-      if (pos > 0) {
-        // strip off the resource type from the end of the search url base
-        serverBase = resourceUrl.substring(0, pos);
-      }
-    }
-    return serverBase;
-  }
-
-  private String getResourceUrl(Parameters params) {
-    String resourceUrl = null;
-
-    final List<ParametersParameterComponent> paramList = params.getParameter();
-
-    final ParametersParameterComponent p = ParametersUtil.findByName(paramList,
-        SEARCH_EXPR);
-    if (p != null) {
-      final Resource r = p.getResource();
-      if (ResourceType.Parameters.equals(r.getResourceType())) {
-        final Parameters searchExprParams = (Parameters) r;
-        final List<ParametersParameterComponent> searchExprParamList = searchExprParams
-            .getParameter();
-
-        final ParametersParameterComponent ppc = ParametersUtil
-            .findByName(searchExprParamList, RESOURCE_URL);
-        resourceUrl = ppc.getValue().toString();
-
-        if (resourceUrl == null) {
-          LOG.warn(
-              "Reqeuired parameter, resourceUrl, is missing from record-match request!");
-        }
-      }
-    } else {
-      LOG.warn("Unable to find search expression in message parameters");
-    }
-    return resourceUrl;
-  }
-
-  /**
-   * Construct a name with path for a data source file.
-   * 
-   * @param dataSourceDir
-   * @param suffix
-   * @return
-   */
-  private String createDataSourceFileName(String dataSourceDir, String suffix) {
-    final Calendar cal = Calendar.getInstance();
-    final StringBuilder sb = new StringBuilder();
-    sb.append(dataSourceDir);
-    sb.append(File.separator);
-    sb.append(String.format("%02d", cal.get(Calendar.YEAR)));
-    sb.append(String.format("%02d", cal.get(Calendar.MONTH)));
-    sb.append(String.format("%02d", cal.get(Calendar.DATE)));
-    sb.append("-");
-    sb.append(String.format("%02d", cal.get(Calendar.HOUR)));
-    sb.append(String.format("%02d", cal.get(Calendar.MINUTE)));
-    sb.append(String.format("%02d", cal.get(Calendar.SECOND)));
-    sb.append("-");
-    sb.append("patient");
-    if (suffix != null && !suffix.isEmpty()) {
-      sb.append("-");
-      sb.append(suffix);
-    }
-    sb.append(".csv");
-    LOG.info("Data Source file Name: {}", sb.toString());
-    return sb.toString();
-  }
-
-  private final char COMMA = ',';
-  private static final String DOUBLE_QUOTE = "\"";
-
-  /**
-   * Write the resources to the specified data files.
-   * 
-   * @param f
-   *          data file to which to write the CSV data
-   * @param resources
-   *          resources to process
-   * @param serverBase
-   *          server based to which to preprend the resource id (to build
-   *          fullUrl)
-   * @throws IOException
-   */
-  private void writeData(File f, List<Resource> resources, String serverBase)
-      throws IOException {
-    // return fast if there is nothing to do
-    if (resources.size() == 0) {
-      return;
-    }
-
-    if (!f.exists()) {
-      f.createNewFile();
-    }
-
-    String fullUrlBase = serverBase;
-    if (!serverBase.endsWith("/")) {
-      fullUrlBase += "/";
-    }
-    // Create Writer
-    final BufferedWriter bw = new BufferedWriter(new FileWriter(f, true));
-    final SimplePatientCsvFormat fmt = new SimplePatientCsvFormat();
-
-    try {
-      bw.write(fmt.getHeaders());
-      bw.write(COMMA);
-      bw.write("fullUrl");
-      bw.newLine();
-      // Process each resource in the list
-      for (Resource r : resources) {
-        if (ResourceType.Patient.equals(r.getResourceType())) {
-          // convert resource to CSV
-          String csv = fmt.toCSV((Patient) r);
-          if (csv != null) {
-            bw.write(csv);
-            bw.write(COMMA);
-            bw.write(DOUBLE_QUOTE);
-            bw.write(fullUrlBase);
-            bw.write(r.getId());
-            bw.write(DOUBLE_QUOTE);
-            bw.newLine();
-          }
-        } else {
-          LOG.error("Unsupported Resource Type: {}",
-              r.getResourceType().toString());
-        }
-      }
-    } finally {
-      bw.close();
-    }
   }
 
   /**
@@ -446,8 +255,7 @@ public class RecordMatchRequestProcessor {
   }
 
   /**
-   * @param fhirRestClient
-   *          the fhirRestClient to set
+   * @param fhirRestClient the fhirRestClient to set
    */
   public final void setFhirRestClient(IGenericClient fhirRestClient) {
     this.fhirRestClient = fhirRestClient;
@@ -458,21 +266,6 @@ public class RecordMatchRequestProcessor {
    */
   public final ProducerTemplate getProducer() {
     return producer;
-  }
-
-  /**
-   * @return the dataSourceDir
-   */
-  public final String getDataSourceDir() {
-    return dataSourceDir;
-  }
-
-  /**
-   * @param dataSourceDir
-   *          the dataSourceDir to set
-   */
-  public final void setDataSourceDir(String dataSourceDir) {
-    this.dataSourceDir = dataSourceDir;
   }
 
 }
