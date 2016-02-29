@@ -20,6 +20,11 @@ _testmain.go
 *.test
 *.prof
 
+### ptmatchadapter temp files ###
+logs/
+inbox/
+outputDir/
+
 
 # Created by https://www.gitignore.io/api/gradle,eclipse,java
 
