@@ -16,8 +16,8 @@
  */
 package org.mitre.ptmatchadapter;
 
-import java.io.BufferedWriter;
 import java.io.File;
+import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Calendar;
@@ -59,8 +59,8 @@ public class RecordMatchRequestProcessor {
 
   private String producerEndpointUri;
 
-  /** Path to the folder in which to write the FRIL data source(s). */
-  private String dataSourceDir;
+  /** Path to the folder for FRIL data sources, config file, & results. */
+  private String workDir;
 
   private static final String MASTER = "master";
   private static final String QUERY = "query";
@@ -93,12 +93,12 @@ public class RecordMatchRequestProcessor {
             Parameters params = (Parameters) r;
             List<ParametersParameterComponent> paramList = params.getParameter();
             // Now look for the parameter with name, resourceType.
-            ParametersParameterComponent p = ParametersUtil.findByName(paramList,
-                RESOURCE_TYPE);
+            ParametersParameterComponent p = 
+                ParametersUtil.findByName(paramList, RESOURCE_TYPE);
             if (p != null) {
               resourceType = p.getValue().toString();
             }
-            // Find parameter that distinguises between master and query sets
+            // Find parameter that distinguishes between master and query sets
             p = ParametersUtil.findByName(paramList, "type");
             if (p != null) {
               String val = p.getValue().toString();
@@ -144,7 +144,8 @@ public class RecordMatchRequestProcessor {
               .splitBundle(masterSetResults);
 
           // Create a CSV data source for FRIL
-          String fname = createDataSourceFileName(dataSourceDir, "master");
+          File runDir = newRunDir(workDir);
+          String fname = createDataSourceFileName(runDir, "master");
           final File masterFile = new File(fname);
           writeData(masterFile, masterResources, masterServerBase);
 
@@ -170,7 +171,7 @@ public class RecordMatchRequestProcessor {
                 .splitBundle(querySetResults);
 
             // Create a CSV data source for FRIL
-            fname = createDataSourceFileName(dataSourceDir, "query");
+            fname = createDataSourceFileName(runDir, "query");
             final File queryFile = new File(fname);
             writeData(queryFile, queryResources, queryServerBase);
 
@@ -325,14 +326,30 @@ public class RecordMatchRequestProcessor {
   /**
    * Construct a name with path for a data source file.
    * 
-   * @param dataSourceDir
-   * @param suffix
+   * @param workDir
+   * @param setType
    * @return
    */
-  private String createDataSourceFileName(String dataSourceDir, String suffix) {
+  private String createDataSourceFileName(File runDir, String setType) {
+    final StringBuilder sb = new StringBuilder();
+    sb.append(runDir.getAbsolutePath());
+    if (File.separatorChar != sb.charAt(sb.length()-1)) {
+      sb.append(File.separator);
+    }
+    if (setType != null && !setType.isEmpty()) {
+      sb.append(setType);
+      sb.append("-");
+    }
+    sb.append("data");
+    sb.append(".csv");
+    LOG.info("Data Source file Name: {}", sb.toString());
+    return sb.toString();
+  }
+
+  private File newRunDir(String workDir) {
     final Calendar cal = Calendar.getInstance();
     final StringBuilder sb = new StringBuilder();
-    sb.append(dataSourceDir);
+    sb.append(workDir);
     sb.append(File.separator);
     sb.append(String.format("%02d", cal.get(Calendar.YEAR)));
     sb.append(String.format("%02d", cal.get(Calendar.MONTH)));
@@ -341,17 +358,15 @@ public class RecordMatchRequestProcessor {
     sb.append(String.format("%02d", cal.get(Calendar.HOUR)));
     sb.append(String.format("%02d", cal.get(Calendar.MINUTE)));
     sb.append(String.format("%02d", cal.get(Calendar.SECOND)));
-    sb.append("-");
-    sb.append("patient");
-    if (suffix != null && !suffix.isEmpty()) {
-      sb.append("-");
-      sb.append(suffix);
+    
+    final File dir = new File(sb.toString());
+    if (!dir.exists()) {
+      dir.mkdirs();
     }
-    sb.append(".csv");
-    LOG.info("Data Source file Name: {}", sb.toString());
-    return sb.toString();
+    
+    return dir;
   }
-
+  
   private final char COMMA = ',';
   private static final String DOUBLE_QUOTE = "\"";
 
@@ -461,18 +476,18 @@ public class RecordMatchRequestProcessor {
   }
 
   /**
-   * @return the dataSourceDir
+   * @return the workDir
    */
-  public final String getDataSourceDir() {
-    return dataSourceDir;
+  public final String getWorkDir() {
+    return workDir;
   }
 
   /**
-   * @param dataSourceDir
-   *          the dataSourceDir to set
+   * @param workDir
+   *          the workDir to set
    */
-  public final void setDataSourceDir(String dataSourceDir) {
-    this.dataSourceDir = dataSourceDir;
+  public final void setWorkDir(String dir) {
+    this.workDir = dir;
   }
 
 }

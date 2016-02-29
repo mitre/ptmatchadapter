@@ -44,7 +44,7 @@
     <property name="producerEndpointUri" value="seda:msgOutbox" />
     <property name="producer" ref="producerTemplate"/>
     <property name="fhirRestClient" ref="fhirRestClient"/>
-    <property name="dataSourceDir" value="/home/michael/Documents/fril-indata"/>
+    <property name="workDir" value="/home/michael/Documents/fril-runs"/>
   </bean>
   
   
