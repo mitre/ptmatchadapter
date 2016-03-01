@@ -55,17 +55,16 @@
   <route id="ackRequest">
     <from uri="seda:ackRequest" />
     <log message="Send Record Match Request ACK" loggingLevel="INFO" />
-  <!-- Construct acknowledgement -->
+    <!-- Construct acknowledgement -->
     <to uri="bean:acknowledgmentBuilder?method=build" />
     <multicast>
       <to uri="seda:msgOutbox" />
-<!--   <to uri="seda:msgOutbox"/> -->
     </multicast>
   </route>
 
   <route id="rejectRequest">
     <from uri="seda:rejectRequest" />
-    <log message="Reject Record Match Request" loggingLevel="INFO" />
+    <log message="Reject Record Match Request: UNIMPLEMENTED" loggingLevel="WARN" />
   <!-- Construct Operation Outcome -->
 <!--   <to uri="seda:msgOutbox"/> -->
   </route>

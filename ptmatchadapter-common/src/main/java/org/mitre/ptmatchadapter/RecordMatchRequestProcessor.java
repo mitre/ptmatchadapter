@@ -16,8 +16,8 @@
  */
 package org.mitre.ptmatchadapter;
 
-import java.io.File;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Calendar;
@@ -352,7 +352,7 @@ public class RecordMatchRequestProcessor {
     sb.append(workDir);
     sb.append(File.separator);
     sb.append(String.format("%02d", cal.get(Calendar.YEAR)));
-    sb.append(String.format("%02d", cal.get(Calendar.MONTH)));
+    sb.append(String.format("%02d", cal.get(Calendar.MONTH) + 1));
     sb.append(String.format("%02d", cal.get(Calendar.DATE)));
     sb.append("-");
     sb.append(String.format("%02d", cal.get(Calendar.HOUR)));

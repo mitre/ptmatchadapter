@@ -19,12 +19,10 @@ package org.mitre.resourceretriever;
 import org.apache.camel.spring.boot.FatJarRouter;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportResource;
 
 @SpringBootApplication
 @ImportResource("beans-config.xml")
-@ComponentScan("org.mitre.ptmatchadapter")
 public class Retriever extends FatJarRouter {
 
   @Override

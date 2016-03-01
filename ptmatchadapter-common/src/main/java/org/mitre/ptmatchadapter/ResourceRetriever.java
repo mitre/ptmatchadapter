@@ -35,12 +35,18 @@ public class ResourceRetriever {
 
   private IGenericClient    client;
 
-  
+  /**
+   * Uses the given query expression to search for fhir resources.
+   * 
+   * @param queryExpr
+   * @return
+   */
   public Bundle doSearch(String queryExpr) {
     Bundle results = null;
 
     LoggingInterceptor loggingInterceptor = null; 
     if (LOG.isDebugEnabled()) {
+      // Note: Logging Intercepter output is at INFO level and based on ca.uhn... tree
       loggingInterceptor = new LoggingInterceptor(true);
       client.registerInterceptor(loggingInterceptor);
     }
@@ -53,7 +59,7 @@ public class ResourceRetriever {
 
       final IQuery<Bundle> query = client.search()
           .byUrl(sb.toString())
-          .usingStyle(SearchStyleEnum.POST)
+          .usingStyle(SearchStyleEnum.POST)  // POST ignored when byUrl is called
           .returnBundle(Bundle.class);
 
       // Perform a search

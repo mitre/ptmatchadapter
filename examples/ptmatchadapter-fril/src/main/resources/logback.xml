@@ -2,30 +2,32 @@
 <configuration>
 
   <!-- Just used while running in process while developing -->
-  <appender name="STDOUT"
-            class="ch.qos.logback.core.ConsoleAppender">
-      <encoder>
-          <pattern>
-              %d{HH:mm:ss.SSS} [%thread] %-5level %logger{5} - %msg%n
-          </pattern>
-      </encoder>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>
+        %d{HH:mm:ss.SSS} [%thread] %-5level %logger{5} - %msg%n
+      </pattern>
+    </encoder>
   </appender>
 
   <!-- Used for application logging -->
   <appender name="APPLOGFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-      <file>logs/ptmatchadapter.log</file>
-      <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+    <file>logs/ptmatchadapter.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
           <!-- daily rollover -->
-          <fileNamePattern>logs/ptmatchadapter.%d{yyyy-MM-dd}.log</fileNamePattern>
-      </rollingPolicy>
-      <encoder>
-          <pattern>
-              %d{HH:mm:ss.SSS} [%thread] %-5level %logger{5} - %msg%n
-          </pattern>
-      </encoder>
+      <fileNamePattern>logs/ptmatchadapter.%d{yyyy-MM-dd}.log
+      </fileNamePattern>
+    </rollingPolicy>
+    <encoder>
+      <pattern>
+        %d{HH:mm:ss.SSS} [%thread] %-5level %logger{5} - %msg%n
+      </pattern>
+    </encoder>
   </appender>
 
-<appender name="multiplex" class="de.huxhorn.lilith.logback.appender.ClassicMultiplexSocketAppender">
+  <appender name="multiplex"
+    class="de.huxhorn.lilith.logback.appender.ClassicMultiplexSocketAppender"
+  >
     <Compressing>true</Compressing>
     <!-- will automatically use correct default port -->
     <!-- Default port for compressed is 10000 and uncompressed 10001 -->
@@ -40,15 +42,18 @@
     Optional:
     <CreatingUUID>false</CreatingUUID>
     -->
-</appender>
+  </appender>
 
-  <logger name="org.mitre" level="debug"/>
-  <logger name="org.springframework" level="info"/>
-  
- 
+  <logger name="ca.uhn.fhir.rest" level="info" />
+  <logger name="org.apache.camel" level="info" />
+  <logger name="org.mitre" level="debug" />
+  <logger name="org.springframework" level="info" />
+
+
   <root level="info">
-    <appender-ref ref="STDOUT"/>
-    
-    <appender-ref ref="multiplex"/>
+    <appender-ref ref="APPLOGFILE" />
+    <appender-ref ref="STDOUT" />
+
+    <appender-ref ref="multiplex" />
   </root>
 </configuration>

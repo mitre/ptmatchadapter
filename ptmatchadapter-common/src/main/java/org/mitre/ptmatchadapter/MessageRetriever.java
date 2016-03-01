@@ -16,8 +16,8 @@
  */
 package org.mitre.ptmatchadapter;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.text.SimpleDateFormat;
 
 import org.hl7.fhir.instance.model.Bundle;
 import org.slf4j.Logger;
@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import ca.uhn.fhir.rest.client.IGenericClient;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
 import ca.uhn.fhir.rest.gclient.IQuery;
-import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 
 /**
@@ -50,6 +49,7 @@ public class MessageRetriever {
 
     LoggingInterceptor loggingInterceptor = null; 
     if (LOG.isDebugEnabled()) {
+      // Note: Logging Intercepter output is at INFO level and based on ca.uhn... tree
       loggingInterceptor = new LoggingInterceptor(true);
       client.registerInterceptor(loggingInterceptor);
     }

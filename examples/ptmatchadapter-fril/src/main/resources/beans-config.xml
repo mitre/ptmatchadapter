@@ -2,65 +2,73 @@
 <beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns:util="http://www.springframework.org/schema/util"
   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+>
 
 
-  <bean id="fhirContext" class="ca.uhn.fhir.context.FhirContext" 
-      factory-method="forDstu2Hl7Org" />
+  <bean id="fhirContext" class="ca.uhn.fhir.context.FhirContext"
+    factory-method="forDstu2Hl7Org" />
 
-  <bean id="fhirRestClientFactory"
-      factory-bean="fhirContext" factory-method="getRestfulClientFactory">
-    <property name="serverValidationMode" >
+  <bean id="fhirRestClientFactory" factory-bean="fhirContext"
+    factory-method="getRestfulClientFactory">
+    <property name="serverValidationMode">
       <value type="ca.uhn.fhir.rest.client.ServerValidationModeEnum">NEVER</value>
     </property>
   </bean>
 
-  <bean id="fhirRestClient" 
-      factory-bean="fhirRestClientFactory" factory-method="newGenericClient">
+  <bean id="fhirRestClient" factory-bean="fhirRestClientFactory"
+    factory-method="newGenericClient">
    <!-- URL string to the server from which to request messages. 
         Include scheme, host name + port + root path -->
-      <constructor-arg value="http://localhost:8881" />
+    <constructor-arg value="${src.fhir.server.base}" />
   </bean>
-  
+
+  <!-- The classes that use the REST Client may add/remove Interceptors.
+      When they share the REST client, this can result in conditions that result
+      in a ConcurrentModificationException.  So, give retriever and sender
+      their own clients. -->
+  <bean id="fhirRestClient2" factory-bean="fhirRestClientFactory"
+    factory-method="newGenericClient">
+   <!-- URL string to the server from which to request messages. 
+        Include scheme, host name + port + root path -->
+    <constructor-arg value="${src.fhir.server.base}" />
+  </bean>
+
   <bean id="msgRetriever" class="org.mitre.ptmatchadapter.MessageRetriever">
-   <property name="client" ref="fhirRestClient"/>
-   <property name="destinationUri" value="http://acme.com/record-matcher"/>
+    <property name="client" ref="fhirRestClient" />
+    <property name="destinationUri" value="${ptmatchadapter.uri}" />
   </bean>
 
   <bean id="duplicateMessageFilter" class="org.mitre.ptmatchadapter.DuplicateMessageFilter">
   </bean>
 
-  <bean id="recordMatchRequestAccepter" 
-      class="org.mitre.ptmatchadapter.RecordMatchRequestAccepter"/>
+  <bean id="recordMatchRequestAccepter" class="org.mitre.ptmatchadapter.RecordMatchRequestAccepter" />
 
-  <bean id="recordMatchRequestPassFilter" 
-      class="org.mitre.ptmatchadapter.RecordMatchRequestPassFilter"/>
+  <bean id="recordMatchRequestPassFilter" class="org.mitre.ptmatchadapter.RecordMatchRequestPassFilter" />
 
-  <bean id="searchResultSplitter" 
-      class="org.mitre.ptmatchadapter.SearchResultSplitter"/>
+  <bean id="searchResultSplitter" class="org.mitre.ptmatchadapter.SearchResultSplitter" />
 
 
-  <bean id="requestHandler" class="org.mitre.ptmatchadapter.RecordMatchRequestProcessor" >
+  <bean id="requestHandler" class="org.mitre.ptmatchadapter.RecordMatchRequestProcessor">
     <property name="producerEndpointUri" value="seda:msgOutbox" />
-    <property name="producer" ref="producerTemplate"/>
-    <property name="fhirRestClient" ref="fhirRestClient"/>
-    <property name="workDir" value="/home/michael/Documents/fril-runs"/>
+    <property name="producer" ref="producerTemplate" />
+    <property name="fhirRestClient" ref="fhirRestClient2" />
+    <property name="workDir" value="${ptmatchadapter.workDir}" />
   </bean>
-  
-  
+
   <bean id="acknowledgmentBuilder" class="org.mitre.ptmatchadapter.recordmatch.AcknowledgmentBuilder">
-    <property name="sourceName" value="ptmatchAdapter-noop"/>
-    <property name="sourceEndpointUri" value="http://ptmatchadapter.net/noop"/>
+    <property name="sourceName" value="${ptmatchadapter.name}" />
+    <property name="sourceEndpointUri" value="${ptmatchadapter.uri}" />
   </bean>
-  
+
   <bean id="resultSender" class="org.mitre.ptmatchadapter.ResultSender">
-    <property name="client" ref="fhirRestClient"/>
+    <property name="client" ref="fhirRestClient" />
   </bean>
 
 
   <bean id="resourceSerializer" class="org.mitre.ptmatchadapter.util.ResourceSerializer">
-    <constructor-arg name="fhirContext" ref="fhirContext"/>
-    <property name="format" value="json"/>
-    <property name="prettyPrint" value="true"/>
+    <constructor-arg name="fhirContext" ref="fhirContext" />
+    <property name="format" value="json" />
+    <property name="prettyPrint" value="true" />
   </bean>
 </beans>
