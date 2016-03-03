@@ -72,7 +72,8 @@ public class SimplePatientCsvFormatTest {
     sb.append("name__text,name__family,name__given,");
     sb.append("name_official_text,name_official_family,name_official_given,");
     sb.append("name_usual_text,name_usual_family,name_usual_given,");
-    sb.append("gender,DOB");
+    sb.append("gender,DOB,telecom_phone_mobile,");
+    sb.append("telecom_phone_work,telecom_phone_home,telecom_email_work,telecom_email_home");
 
     assertEquals("col titles", sb.toString(), obj.getHeaders());
   }
