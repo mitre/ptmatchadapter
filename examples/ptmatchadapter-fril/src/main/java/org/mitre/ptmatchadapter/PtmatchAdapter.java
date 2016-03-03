@@ -16,9 +16,8 @@
  */
 package org.mitre.ptmatchadapter;
 
-import org.apache.camel.spring.boot.FatJarRouter;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
+import org.apache.camel.spring.boot.FatJarRouter;
 import org.springframework.context.annotation.ImportResource;
 
 @SpringBootApplication
@@ -27,12 +26,6 @@ public class PtmatchAdapter extends FatJarRouter {
 
   @Override
   public void configure() {
-   // from("timer:trigger").transform().simple("ref:myBean").to("log:out");
   }
-
-//  @Bean
-//  String myBean() {
-//    return "I'm Spring bean!";
-//  }
 
 }
