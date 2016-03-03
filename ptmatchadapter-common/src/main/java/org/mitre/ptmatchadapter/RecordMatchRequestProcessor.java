@@ -59,9 +59,12 @@ public class RecordMatchRequestProcessor {
 
   private String producerEndpointUri;
 
-  /** Path to the folder for FRIL data sources, config file, & results. */
+  /** Path to the folder in which a folder for each record match run will be created. */
   private String workDir;
 
+  /** Path to the record match configuration template file. */ 
+  private String configTemplate;
+  
   private static final String MASTER = "master";
   private static final String QUERY = "query";
   private static final String RESOURCE_TYPE = "resourceType";
@@ -488,6 +491,20 @@ public class RecordMatchRequestProcessor {
    */
   public final void setWorkDir(String dir) {
     this.workDir = dir;
+  }
+
+  /**
+   * @return the configTemplate
+   */
+  public final String getConfigTemplate() {
+    return configTemplate;
+  }
+
+  /**
+   * @param configTemplate the configTemplate to set
+   */
+  public final void setConfigTemplate(String configTemplate) {
+    this.configTemplate = configTemplate;
   }
 
 }
