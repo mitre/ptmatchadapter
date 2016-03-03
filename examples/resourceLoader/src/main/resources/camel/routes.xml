@@ -1,0 +1,76 @@
+<routes xmlns="http://camel.apache.org/schema/spring" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:beans="http://www.springframework.org/schema/beans"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd"
+>
+
+
+  <route id="fileIn">
+    <from uri="{{src.file.endpoint}}" />
+    <log message="Loaded File" loggingLevel="INFO" />
+    <!-- Camel automagically converts GenericFile to String for toResource() -->
+    <to uri="bean:resourceSerializer?method=toResource" />
+    <to uri="seda:textIn" />
+  </route>
+
+  <route id="textIn">
+    <from uri="seda:textIn" />
+    <log message="Process File Content" loggingLevel="INFO" />
+
+    <choice>
+      <when>
+        <simple>${body} is 'org.hl7.fhir.instance.model.Bundle'</simple>
+        <!-- Split Bundle into component parts (i.e., individual message bundles) -->
+        <split>
+          <method bean="searchResultSplitter" />
+          <to uri="seda:resourceIn" />
+        </split>
+      </when>
+      <when>
+        <simple>${body} is 'org.hl7.fhir.instance.model.Resource'</simple>
+        <to uri="seda:resourceIn" />
+      </when>
+      <otherwise>
+        <log message="Body Type is UNSUPPORTED" loggingLevel="INFO" />
+      </otherwise>
+    </choice>
+  </route>
+
+
+  <route id="resourceIn">
+    <from uri="seda:resourceIn" />
+    <log message="Process Incoming Resource" loggingLevel="INFO" />
+
+    <to uri="seda:postToFhirServer" />
+
+    <choice>
+      <when>
+        <simple>${properties:doWriteToFile} == 'true'</simple>
+        <to uri="seda:writeToFile" />
+      </when>
+    </choice>
+  </route>
+
+
+  <route id="writeToFile">
+    <from uri="seda:writeToFile" />
+    <log message="Write Resource to File" loggingLevel="INFO" />
+    <to uri="bean:resourceSerializer" />
+    <to uri="{{dest.file.endpoint}}" />
+  </route>
+
+  <route id="postToFhirServer">
+    <from uri="seda:postToFhirServer" />
+    <log message="Post Resource to FHIR Server" loggingLevel="INFO" />
+    <to uri="bean:resourceSender?method=create" />
+  <!-- to uri="seda:resourceToString" / -->
+  </route>
+
+  <route id="resourceToString">
+    <from uri="seda:resourceToString" />
+    <log message="Serialize Resource to String" loggingLevel="INFO" />
+    <to uri="bean:resourceSerializer" />
+    <to uri="stream:out" />
+  </route>
+
+</routes>

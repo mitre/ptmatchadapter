@@ -1,0 +1,40 @@
+allprojects {
+  task hello << { task -> println "I'm $task.project.name" }
+}
+
+
+subprojects {
+  apply plugin: "java"
+  apply plugin: 'eclipse'
+  repositories {
+      mavenCentral()
+  }
+
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
+
+  eclipse {
+    classpath {
+       containers.remove('org.eclipse.jdt.launching.JRE_CONTAINER')
+       containers 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8'
+    }
+  }
+  
+  // gradle "extra" variables propagate to subprojects like a global variable
+  ext {
+    springVersion = '4.2.4.RELEASE'
+    camelVersion = '2.16.2'
+    hapiFhirVersion = '1.4'
+    mongodbVersion = '3.2.1'
+    slf4jVersion = '1.7.16'
+    junitVersion = '4.12'
+  }
+  
+  task allDeps(type: DependencyReportTask){}
+}
+
+
+task wrapper(type: Wrapper) {
+  gradleVersion = '2.11'
+}
+

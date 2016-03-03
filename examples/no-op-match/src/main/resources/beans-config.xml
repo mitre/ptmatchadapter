@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:util="http://www.springframework.org/schema/util"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+
+  <bean id="fhirContext" class="ca.uhn.fhir.context.FhirContext" 
+      factory-method="forDstu2Hl7Org" />
+
+  <bean id="fhirRestClientFactory"
+      factory-bean="fhirContext" factory-method="getRestfulClientFactory">
+    <property name="serverValidationMode" >
+      <value type="ca.uhn.fhir.rest.client.ServerValidationModeEnum">NEVER</value>
+    </property>
+  </bean>
+
+  <bean id="fhirRestClient" 
+      factory-bean="fhirRestClientFactory" factory-method="newGenericClient">
+   <!-- URL string to the server from which to request messages. 
+        Include scheme, host name + port + root path -->
+      <constructor-arg value="http://localhost:8881" />
+  </bean>
+  
+  <bean id="msgRetriever" class="org.mitre.ptmatchadapter.MessageRetriever">
+   <property name="client" ref="fhirRestClient"/>
+   <property name="destinationUri" value="http://acme.com/record-matcher"/>
+  </bean>
+
+  <bean id="duplicateMessageFilter" class="org.mitre.ptmatchadapter.DuplicateMessageFilter">
+  </bean>
+
+  <bean id="recordMatchRequestAccepter" 
+      class="org.mitre.ptmatchadapter.RecordMatchRequestAccepter"/>
+
+  <bean id="recordMatchRequestPassFilter" 
+      class="org.mitre.ptmatchadapter.RecordMatchRequestPassFilter"/>
+
+  <bean id="searchResultSplitter" 
+      class="org.mitre.ptmatchadapter.SearchResultSplitter"/>
+
+
+  <bean id="requestHandler" class="org.mitre.ptmatchadapter.NoOpRecordMatchRequestProcessor" >
+    <property name="producerEndpointUri" value="seda:msgOutbox" />
+    <property name="producer" ref="producerTemplate"/>
+    <property name="fhirRestClient" ref="fhirRestClient"/>
+  </bean>
+  
+  
+  <bean id="acknowledgmentBuilder" class="org.mitre.ptmatchadapter.recordmatch.AcknowledgmentBuilder">
+    <property name="sourceName" value="ptmatchAdapter-noop"/>
+    <property name="sourceEndpointUri" value="http://ptmatchadapter.net/noop"/>
+  </bean>
+  
+  <bean id="resultSender" class="org.mitre.ptmatchadapter.ResultSender">
+    <property name="client" ref="fhirRestClient"/>
+  </bean>
+
+
+  <bean id="resourceSerializer" class="org.mitre.ptmatchadapter.util.ResourceSerializer">
+    <constructor-arg name="fhirContext" ref="fhirContext"/>
+    <property name="format" value="json"/>
+    <property name="prettyPrint" value="true"/>
+  </bean>
+</beans>

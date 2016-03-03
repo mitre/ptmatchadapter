@@ -1,0 +1,89 @@
+<routes xmlns="http://camel.apache.org/schema/spring" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:beans="http://www.springframework.org/schema/beans"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd"
+>
+
+
+  <route id="msgPoller">
+    <from uri="timer://foo?fixedRate=true&amp;period=12000" />
+    <log message="GET Messages" loggingLevel="INFO" />
+    <to uri="bean:msgRetriever?method=doSearch" />
+    <to uri="seda:msgIn" />
+  </route>
+
+  <route id="msgIn">
+    <from uri="seda:msgIn" />
+    <log message="Process Incoming Message" loggingLevel="INFO" />
+  
+    <!-- Split Bundle into component parts (i.e., individual message bundles) -->
+    <split>
+      <method bean="searchResultSplitter" />
+      <filter>
+        <method bean="recordMatchRequestPassFilter" />
+        <filter>
+          <method bean="duplicateMessageFilter" />
+          <to uri="seda:recMatchRequestIn" />
+        </filter>
+      </filter>
+    </split>
+  </route>
+
+  <route id="recMatchRequestIn">
+    <from uri="seda:recMatchRequestIn" />
+    <log message="Process Incoming Record Match Request" loggingLevel="INFO" />
+  
+  <!-- Decide whether to accept the request -->
+    <choice>
+      <when>
+        <method bean="recordMatchRequestAccepter" />
+        <multicast>
+          <to uri="seda:ackRequest" />
+          <to uri="seda:processRequest" />
+        </multicast>
+      </when>
+      <otherwise>
+        <to uri="seda:rejectRequest" />
+      </otherwise>
+    </choice>
+  </route>
+
+  <route id="processRequest">
+    <from uri="seda:processRequest" />
+    <log message="Process Record Match Request" loggingLevel="INFO" />
+    <to uri="bean:requestHandler?method=process" />
+  </route>
+
+  <route id="ackRequest">
+    <from uri="seda:ackRequest" />
+    <log message="Send Record Match Request ACK" loggingLevel="INFO" />
+  <!-- Construct acknowledgement -->
+    <to uri="bean:acknowledgmentBuilder?method=build" />
+    <multicast>
+      <to uri="seda:msgOutbox" />
+<!--   <to uri="seda:msgOutbox"/> -->
+    </multicast>
+  </route>
+
+  <route id="rejectRequest">
+    <from uri="seda:rejectRequest" />
+    <log message="Reject Record Match Request" loggingLevel="INFO" />
+  <!-- Construct Operation Outcome -->
+<!--   <to uri="seda:msgOutbox"/> -->
+  </route>
+
+  <route id="msgOutbox">
+    <from uri="seda:msgOutbox" />
+    <log message="Send Message to FHIR Server" loggingLevel="INFO" />
+    <to uri="bean:resultSender?method=sendMessage" />
+    <to uri="seda:resourceToString" />
+  </route>
+
+  <route id="resourceToString">
+    <from uri="seda:resourceToString" />
+    <log message="Serialize Resource to String" loggingLevel="INFO" />
+    <to uri="bean:resourceSerializer" />
+    <to uri="stream:out" />
+  </route>
+
+</routes>
