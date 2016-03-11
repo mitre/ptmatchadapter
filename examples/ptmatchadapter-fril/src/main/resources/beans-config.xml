@@ -54,6 +54,7 @@
     <property name="producer" ref="producerTemplate" />
     <property name="fhirRestClient" ref="fhirRestClient2" />
     <property name="workDir" value="${ptmatchadapter.workDir}" />
+    <property name="deduplicationTemplate" value="${ptmatchadapter.deduplicationTemplate}" />
   </bean>
 
   <bean id="acknowledgmentBuilder" class="org.mitre.ptmatchadapter.recordmatch.AcknowledgmentBuilder">

@@ -18,10 +18,19 @@ package org.mitre.ptmatchadapter;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.Writer;
+import java.security.SecureRandom;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.camel.ProducerTemplate;
 import org.hl7.fhir.instance.model.Bundle;
@@ -40,10 +49,15 @@ import org.mitre.ptmatchadapter.util.ParametersUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.samskivert.mustache.Mustache;
+import com.samskivert.mustache.Template;
+
 import ca.uhn.fhir.rest.client.IGenericClient;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
+import cdc.impl.Main;
+import cdc.utils.RJException;
 
 /**
  * @author Michael Los, mel@mitre.org
@@ -59,12 +73,18 @@ public class RecordMatchRequestProcessor {
 
   private String producerEndpointUri;
 
-  /** Path to the folder in which a folder for each record match run will be created. */
+  /**
+   * Path to the folder in which a folder for each record match run will be
+   * created.
+   */
   private String workDir;
 
-  /** Path to the record match configuration template file. */ 
-  private String configTemplate;
-  
+  /** Path to the record match deduplication configuration template file. */
+  private String deduplicationTemplate;
+
+  /** Path to the record match linkage configuration template file. */
+  private String linkageTemplate;
+
   private static final String MASTER = "master";
   private static final String QUERY = "query";
   private static final String RESOURCE_TYPE = "resourceType";
@@ -73,6 +93,9 @@ public class RecordMatchRequestProcessor {
 
   public void process(Bundle bundle) {
     if (BundleType.MESSAGE.equals(bundle.getType())) {
+      // Create a CSV data source for FRIL
+      final File jobDir = newRunDir(workDir);
+
       final List<BundleEntryComponent> bundleEntries = bundle.getEntry();
       try {
         // the first entry is supposed to be the MessageHeader
@@ -86,6 +109,7 @@ public class RecordMatchRequestProcessor {
         String masterServerBase = null;
         String queryServerBase = null;
         String resourceType = "Patient";
+        boolean isDeduplication = true;
 
         // Find the Parameters resources that contain the search parameters
         // and use those to construct search Urls
@@ -96,8 +120,8 @@ public class RecordMatchRequestProcessor {
             Parameters params = (Parameters) r;
             List<ParametersParameterComponent> paramList = params.getParameter();
             // Now look for the parameter with name, resourceType.
-            ParametersParameterComponent p = 
-                ParametersUtil.findByName(paramList, RESOURCE_TYPE);
+            ParametersParameterComponent p = ParametersUtil.findByName(paramList,
+                RESOURCE_TYPE);
             if (p != null) {
               resourceType = p.getValue().toString();
             }
@@ -125,6 +149,8 @@ public class RecordMatchRequestProcessor {
           LOG.warn(
               "Required Parameter for master record set is missing, bundle: {}",
               bundle.getId());
+          LOG.warn("NOT IMPL: Should return an ERROR RESULT from HERE!!");
+          // TODO Return an Error Result to requester
           return;
         }
 
@@ -133,57 +159,64 @@ public class RecordMatchRequestProcessor {
           loggingInterceptor = new LoggingInterceptor(true);
           fhirRestClient.registerInterceptor(loggingInterceptor);
         }
+
         try {
           // Retrieve the data associated with the search urls
-          IQuery<Bundle> query = fhirRestClient.search().byUrl(masterSearchUrl)
-              .returnBundle(Bundle.class);
+          retrieveAndStoreData(masterSearchUrl, masterServerBase, jobDir, "master");
 
-          // Perform a search
-          final Bundle masterSetResults = query.execute();
+          // IQuery<Bundle> query =
+          // fhirRestClient.search().byUrl(masterSearchUrl)
+          // .returnBundle(Bundle.class);
+          //
+          // // Perform a search
+          // final Bundle masterSetResults = query.execute();
+          //
+          // // Split the bundle into its component resources
+          // final SearchResultSplitter resultSplitter = new
+          // SearchResultSplitter();
+          // final List<Resource> masterResources = resultSplitter
+          // .splitBundle(masterSetResults);
+          //
+          // final File masterFile = createDataSourceFile(jobDir, "master");
+          // writeData(masterFile, masterResources, masterServerBase);
+          //
+          // // retrieve other pages of search results
+          // Bundle nextResults = masterSetResults;
+          // while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
+          // nextResults =
+          // fhirRestClient.loadPage().next(nextResults).execute();
+          // List<Resource> nextResources =
+          // resultSplitter.splitBundle(nextResults);
+          // writeData(masterFile, nextResources, masterServerBase);
+          // }
 
-          // Split the bundle into its component resources
-          final SearchResultSplitter resultSplitter = new SearchResultSplitter();
-          final List<Resource> masterResources = resultSplitter
-              .splitBundle(masterSetResults);
-
-          // Create a CSV data source for FRIL
-          File runDir = newRunDir(workDir);
-          String fname = createDataSourceFileName(runDir, "master");
-          final File masterFile = new File(fname);
-          writeData(masterFile, masterResources, masterServerBase);
-
-          // retrieve other pages of search results
-          Bundle nextResults = masterSetResults;
-          while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
-            nextResults = fhirRestClient.loadPage().next(nextResults).execute();
-            List<Resource> nextResources = resultSplitter.splitBundle(nextResults);
-            writeData(masterFile, nextResources, masterServerBase);
-          }
-
-          Bundle querySetResults = null;
           if (querySearchUrl != null) {
+            isDeduplication = false;
+
+            retrieveAndStoreData(querySearchUrl, queryServerBase, jobDir, "query");
+
             // Retrieve the data associated with the search urls
-            query = fhirRestClient.search().byUrl(querySearchUrl)
-                .returnBundle(Bundle.class);
-
-            // Perform a search
-            querySetResults = query.execute();
-
-            // Split the bundle into its component resources
-            final List<Resource> queryResources = resultSplitter
-                .splitBundle(querySetResults);
-
-            // Create a CSV data source for FRIL
-            fname = createDataSourceFileName(runDir, "query");
-            final File queryFile = new File(fname);
-            writeData(queryFile, queryResources, queryServerBase);
-
-            nextResults = querySetResults;
-            while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
-              nextResults = fhirRestClient.loadPage().next(nextResults).execute();
-              List<Resource> nextResources = resultSplitter.splitBundle(nextResults);
-              writeData(queryFile, nextResources, queryServerBase);
-            }
+//            query = fhirRestClient.search().byUrl(querySearchUrl)
+//                .returnBundle(Bundle.class);
+//
+//            // Perform a search
+//            final Bundle querySetResults = query.execute();
+//
+//            // Split the bundle into its component resources
+//            final List<Resource> queryResources = resultSplitter
+//                .splitBundle(querySetResults);
+//
+//            // Create a CSV data source for FRIL
+//            final File queryFile = createDataSourceFile(jobDir, "query");
+//            writeData(queryFile, queryResources, queryServerBase);
+//
+//            nextResults = querySetResults;
+//            while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
+//              nextResults = fhirRestClient.loadPage().next(nextResults).execute();
+//              List<Resource> nextResources = resultSplitter
+//                  .splitBundle(nextResults);
+//              writeData(queryFile, nextResources, queryServerBase);
+//            }
           }
 
         } catch (BaseServerResponseException e) {
@@ -198,24 +231,147 @@ public class RecordMatchRequestProcessor {
           }
         }
 
-        // TODO Perform the Match Operation
-        
-        
-        // TODO Construct results 
-        final RecordMatchResultsBuilder builder = new RecordMatchResultsBuilder(
-            bundle, ResponseType.OK);
-        builder.outcomeIssueDiagnostics("No Matches Found");
-        final Bundle result = builder.build();
+        final File configFile = prepareMatchingRuleConfiguration(isDeduplication,
+            jobDir);
 
-        LOG.info("### About to send no match result to endpoint");
-        producer.sendBody(getProducerEndpointUri(), result);
+        // Perform the Match Operation
+        LOG.debug("About to Start FRIL w/ config {}", configFile.getAbsolutePath());
+        final int numMatches = findMatches(isDeduplication, configFile);
+        LOG.info("FRIL Numbber of Matches: {}", numMatches);
+
+        if (numMatches >= 0) {
+          // TODO Construct results
+          final RecordMatchResultsBuilder builder = new RecordMatchResultsBuilder(
+              bundle, ResponseType.OK);
+          builder.outcomeIssueDiagnostics("No Matches Found");
+          final Bundle result = builder.build();
+
+          LOG.info("### About to send no match result to endpoint");
+          producer.sendBody(getProducerEndpointUri(), result);
+
+        } else {
+          // Return an Error Result
+        }
 
       } catch (Exception e) {
         LOG.error("Processing bundle: {}", bundle.getId(), e);
+        // TODO Return an error result
       }
     } else {
       LOG.info("Unsupported Bundle type: {}", bundle.getType());
+      // TODO Return an error result
     }
+  }
+
+  /**
+   * Invokes the given search Url and writes the results to a file in the
+   * specified job folder.
+   * 
+   * @param searchUrl
+   * @param serverBase
+   * @param jobDir
+   * @param fileName
+   * @throws IOException
+   */
+  private void retrieveAndStoreData(String searchUrl, String serverBase,
+      File jobDir, String fileName) throws IOException {
+
+    IQuery<Bundle> query = fhirRestClient.search().byUrl(searchUrl)
+        .returnBundle(Bundle.class);
+
+    // Perform a search
+    final Bundle searchResults = query.execute();
+
+    // Split the bundle into its component resources
+    final SearchResultSplitter resultSplitter = new SearchResultSplitter();
+    final List<Resource> resources = resultSplitter.splitBundle(searchResults);
+
+    final File dataFile = createDataSourceFile(jobDir, fileName);
+    writeData(dataFile, resources, serverBase);
+
+    // retrieve other pages of search results
+    Bundle nextResults = searchResults;
+    while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
+      nextResults = fhirRestClient.loadPage().next(nextResults).execute();
+      List<Resource> nextResources = resultSplitter.splitBundle(nextResults);
+      writeData(dataFile, nextResources, serverBase);
+    }
+
+  }
+
+  /**
+   * 
+   * @param matchRuleConfig
+   * @return number of duplicates or linked pairs found
+   */
+  protected int findMatches(boolean isDeduplication, File matchRuleConfig)
+      throws IOException {
+    int frilResult = -1;
+    try {
+      final Main fril = new Main(matchRuleConfig.getAbsolutePath());
+      if (isDeduplication) {
+        // Start FRIL in deduplication mode
+        frilResult = fril.runDedupe();
+      } else {
+        // Find matches of query items in the master set
+        frilResult = fril.runJoin();
+      }
+    } catch (RJException e) {
+      final String msg = "Unable to load or run FRIL: " + e.getMessage();
+      LOG.error(msg, e);
+      throw new RuntimeException(msg);
+    }
+    LOG.info("FRIL RESULT: {}", frilResult);
+    return frilResult;
+  }
+
+  /**
+   * Prepare a matching rule configuration file in the specified job folder
+   * based on whether the run is Deduplication or Linkage.
+   * 
+   * @param isDeduplication
+   *          true when deduplicating records in a single data set.
+   * 
+   * @param jobDir
+   * @return
+   * @throws IOException
+   */
+  File prepareMatchingRuleConfiguration(boolean isDeduplication,
+      File jobDir) throws IOException {
+    final String templateFileStr = isDeduplication ? getDeduplicationTemplate()
+        : getLinkageTemplate();
+    if (templateFileStr == null) {
+      throw new IllegalStateException("No Template File set for "
+          + (isDeduplication ? "deduplication" : "linkage") + " mode");
+    }
+
+    final Template matchConfigTemplate = loadTemplate(templateFileStr);
+    if (matchConfigTemplate == null) {
+      final String msg = "Unable to load matching rule configuration template: "
+          + templateFileStr;
+      LOG.error(msg);
+      throw new IllegalStateException(msg);
+    }
+
+    final File configFile = new File(jobDir, "config.xml");
+
+    // Generate the configuration file that specifies matching rules and
+    // data sources
+    final Map<String, String> templateParams = new HashMap<String, String>();
+    templateParams.put("jobDir", jobDir.getAbsolutePath());
+    final Writer configWriter = new FileWriter(configFile);
+    try {
+      // Apply parameters to template and write result to file
+      matchConfigTemplate.execute(templateParams, configWriter);
+      configWriter.flush();
+    } finally {
+      try {
+        configWriter.close();
+      } catch (IOException e) {
+        // ignore
+      }
+    }
+    return configFile;
   }
 
   /**
@@ -242,7 +398,6 @@ public class RecordMatchRequestProcessor {
             .getParameter();
 
         String resourceUrl = null;
-        String resourceType = null;
         final StringBuilder queryExpr = new StringBuilder(100);
         // all parameters except resourceUrl contribute to the query expression
         for (ParametersParameterComponent searchExprParam : searchExprParamList) {
@@ -281,6 +436,10 @@ public class RecordMatchRequestProcessor {
     return searchUrl.toString();
   }
 
+  /**
+   * Returns the server base URL found in the resourceUrl.
+   * 
+   */
   private String getServerBase(String resourceType, Parameters params) {
     String serverBase = null;
 
@@ -329,14 +488,15 @@ public class RecordMatchRequestProcessor {
   /**
    * Construct a name with path for a data source file.
    * 
-   * @param workDir
+   * @param runDir
    * @param setType
    * @return
    */
-  private String createDataSourceFileName(File runDir, String setType) {
-    final StringBuilder sb = new StringBuilder();
+  private File createDataSourceFile(File runDir, String setType) {
+    final StringBuilder sb = new StringBuilder(
+        (int) (runDir.getAbsolutePath().length() * 1.5));
     sb.append(runDir.getAbsolutePath());
-    if (File.separatorChar != sb.charAt(sb.length()-1)) {
+    if (File.separatorChar != sb.charAt(sb.length() - 1)) {
       sb.append(File.separator);
     }
     if (setType != null && !setType.isEmpty()) {
@@ -345,11 +505,13 @@ public class RecordMatchRequestProcessor {
     }
     sb.append("data");
     sb.append(".csv");
-    LOG.info("Data Source file Name: {}", sb.toString());
-    return sb.toString();
+    LOG.debug("Data Source file Name: {}", sb.toString());
+    return new File(sb.toString());
   }
 
-  private File newRunDir(String workDir) {
+  private SecureRandom fileSuffixRand = new SecureRandom();
+  
+  protected File newRunDir(String workDir) {
     final Calendar cal = Calendar.getInstance();
     final StringBuilder sb = new StringBuilder();
     sb.append(workDir);
@@ -358,23 +520,24 @@ public class RecordMatchRequestProcessor {
     sb.append(String.format("%02d", cal.get(Calendar.MONTH) + 1));
     sb.append(String.format("%02d", cal.get(Calendar.DATE)));
     sb.append("-");
-    sb.append(String.format("%02d", cal.get(Calendar.HOUR)));
+    sb.append(String.format("%02d", cal.get(Calendar.HOUR_OF_DAY)));
     sb.append(String.format("%02d", cal.get(Calendar.MINUTE)));
     sb.append(String.format("%02d", cal.get(Calendar.SECOND)));
-    
+    sb.append("-");
+    sb.append(String.format("%02d", fileSuffixRand.nextInt(999)));
     final File dir = new File(sb.toString());
     if (!dir.exists()) {
       dir.mkdirs();
     }
-    
+
     return dir;
   }
-  
+
   private final char COMMA = ',';
   private static final String DOUBLE_QUOTE = "\"";
 
   /**
-   * Write the resources to the specified data files.
+   * Write the resources to the specified data file.
    * 
    * @param f
    *          data file to which to write the CSV data
@@ -431,6 +594,45 @@ public class RecordMatchRequestProcessor {
     } finally {
       bw.close();
     }
+  }
+
+  /**
+   * Searches classpath and then system for a file with the specified name.
+   * 
+   * @param name name of template file to load
+   * @return
+   */
+  protected Template loadTemplate(String name) {
+    Template template = null;
+    InputStream instream = this.getClass().getClassLoader()
+        .getResourceAsStream(name);
+
+    if (instream == null) {
+      instream = System.class.getResourceAsStream(name);
+    }
+    if (instream == null) {
+      try {
+        instream = new FileInputStream(name);
+      } catch (FileNotFoundException e) {
+        // Ignore
+      }
+    }
+
+    if (instream != null) {
+      final Reader r = new InputStreamReader(instream);
+      try {
+        template = Mustache.compiler().compile(r);
+      } finally {
+        try {
+          r.close();
+        } catch (Exception e) {
+          // skip
+        }
+      }
+    } else {
+      LOG.warn("instream is null");
+    }
+    return template;
   }
 
   /**
@@ -494,17 +696,33 @@ public class RecordMatchRequestProcessor {
   }
 
   /**
-   * @return the configTemplate
+   * @return the deduplicationTemplate
    */
-  public final String getConfigTemplate() {
-    return configTemplate;
+  public final String getDeduplicationTemplate() {
+    return deduplicationTemplate;
   }
 
   /**
-   * @param configTemplate the configTemplate to set
+   * @param deduplicationTemplate
+   *          full path to the deduplication template file
    */
-  public final void setConfigTemplate(String configTemplate) {
-    this.configTemplate = configTemplate;
+  public final void setDeduplicationTemplate(String path) {
+    this.deduplicationTemplate = path;
+  }
+
+  /**
+   * @return the linkageTemplate
+   */
+  public final String getLinkageTemplate() {
+    return linkageTemplate;
+  }
+
+  /**
+   * @param linkageTemplate
+   *          the linkageTemplate to set
+   */
+  public final void setLinkageTemplate(String linkageTemplate) {
+    this.linkageTemplate = linkageTemplate;
   }
 
 }
