@@ -5,7 +5,7 @@
             <param name="column-separator" value=","/>
             <param name="source-name" value="master-data"/>
             <!-- masterInput - path to the csv input file to be deduplicated -->
-            <param name="input-file" value="{{workDir}}/{{runDir}}/master-data.csv"/>
+            <param name="input-file" value="{{jobDir}}/master-data.csv"/>
         </params>
         <row-model>
             <column column="id"
@@ -100,21 +100,21 @@
         </row-model>
         <preprocessing>
             <deduplication>
-                <deduplication-condition acceptance-level="80">
+                <deduplication-condition acceptance-level="60">
                     <condition
                         class="cdc.impl.distance.EqualFieldsDistance"
                         column="id" weight="5">
                         <params/>
                     </condition>
                     <condition class="cdc.impl.distance.EditDistance"
-                        column="identifier_SSN" weight="5">
+                        column="identifier_SSN" empty-match="0.29" weight="5">
                         <params>
-                            <param name="math-level-end" value="0.3"/>
-                            <param name="match-level-start" value="0.1"/>
+                            <param name="math-level-end" value="0.25"/>
+                            <param name="match-level-start" value="0.09"/>
                         </params>
                     </condition>
                     <condition class="cdc.impl.distance.JaroWinkler"
-                        column="name__text" weight="4">
+                        column="name__text" empty-match="0.25" weight="4">
                         <params>
                             <param name="pref-length" value="4"/>
                             <param name="pref-weight" value="0.1"/>
@@ -140,14 +140,14 @@
                         </params>
                     </condition>
                     <condition class="cdc.impl.distance.JaroWinkler"
-                        column="name_official_text" weight="4">
+                        column="name_official_text" empty-match="0.25" weight="4">
                         <params>
                             <param name="pref-length" value="4"/>
                             <param name="pref-weight" value="0.1"/>
                         </params>
                     </condition>
                     <condition class="cdc.impl.distance.EditDistance"
-                        column="name_official_family" weight="5">
+                        column="name_official_family" empty-match="0.25" weight="5">
                         <params>
                             <param name="math-level-end" value="0.4"/>
                             <param name="match-level-start" value="0.2"/>
@@ -197,7 +197,7 @@
                         <params/>
                     </condition>
                     <condition class="cdc.impl.distance.DateDistance"
-                        column="DOB" weight="5">
+                        column="DOB" empty-match="0.25" weight="5">
                         <params>
                             <param name="date-format-right" value="yyyy-MM-dd"/>
                             <param name="difference-after" value="0"/>
@@ -223,30 +223,29 @@
                     <condition class="cdc.impl.distance.EditDistance"
                         column="telecom_phone_home" weight="5">
                         <params>
-                            <param name="math-level-end" value="0.3"/>
+                            <param name="math-level-end" value="0.25"/>
                             <param name="match-level-start" value="0.1"/>
                         </params>
                     </condition>
-                    <condition class="cdc.impl.distance.QGramDistance"
-                        column="telecom_email_work" weight="6">
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="telecom_email_work" empty-match="0.25" weight="6">
                         <params>
-                            <param name="q" value="4"/>
-                            <param name="disapprove-level" value="0.4"/>
-                            <param name="approve-level" value="0.2"/>
+                            <param name="math-level-end" value="0.25"/>
+                            <param name="match-level-start" value="0.1"/>
                         </params>
                     </condition>
-                    <condition class="cdc.impl.distance.QGramDistance"
-                        column="telecom_email_home" weight="6">
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="telecom_email_home" empty-match="0.25" weight="6">
                         <params>
-                            <param name="q" value="4"/>
-                            <param name="disapprove-level" value="0.4"/>
-                            <param name="approve-level" value="0.2"/>
+                            <param name="math-level-end" value="0.25"/>
+                            <param name="match-level-start" value="0.1"/>
                         </params>
                     </condition>
                 </deduplication-condition>
-                <hashing-function columns="id,id" hash="equality"/>
-                <minus-file file="{{workDir}}/{{runDir}}/duplicates.csv"/>
-                <dedupe-file file="{{workDir}}/{{runDir}}/dedeuplicated-source.csv"/>
+               <hashing-function
+                    columns="identifier_SSN,identifier_SSN" hash="prefix(3)"/>
+                <minus-file file="{{jobDir}}/duplicates.csv"/>
+                <dedupe-file file="{{jobDir}}/deduplicated-source.csv"/>
             </deduplication>
         </preprocessing>
     </left-data-source>
