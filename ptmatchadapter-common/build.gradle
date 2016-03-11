@@ -15,7 +15,7 @@ dependencies {
   compile "org.mongodb:bson:${mongodbVersion}"
   compile "joda-time:joda-time:2.2"
   testCompile "junit:junit:${junitVersion}"
-  testRuntime 'ch.qos.logback:logback-classic:1.1.5'
+  runtime 'ch.qos.logback:logback-classic:1.1.5'
   
 }
 

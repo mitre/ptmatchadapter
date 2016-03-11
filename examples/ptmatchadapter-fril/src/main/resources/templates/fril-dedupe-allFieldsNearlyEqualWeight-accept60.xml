@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration deduplication="true">
+    <left-data-source class="cdc.impl.datasource.text.CSVDataSource" name="master-data">
+        <params>
+            <param name="column-separator" value=","/>
+            <param name="source-name" value="master-data"/>
+            <!-- masterInput - path to the csv input file to be deduplicated -->
+            <param name="input-file" value="{{jobDir}}/master-data.csv"/>
+        </params>
+        <row-model>
+            <column column="id"
+                converter="cdc.datamodel.converters.DummyConverter" name="id">
+                <empty-values/>
+                <params/>
+            </column>
+            <column column="identifier_SSN"
+                converter="cdc.datamodel.converters.DummyConverter" name="identifier_SSN">
+                <empty-values/>
+            </column>
+            <column column="name__text"
+                converter="cdc.datamodel.converters.DummyConverter" name="name__text">
+                <empty-values/>
+            </column>
+            <column column="name__family"
+                converter="cdc.datamodel.converters.DummyConverter" name="name__family">
+                <empty-values/>
+            </column>
+            <column column="name__suffix"
+                converter="cdc.datamodel.converters.DummyConverter" name="name__suffix">
+                <empty-values/>
+            </column>
+            <column column="name__given"
+                converter="cdc.datamodel.converters.DummyConverter" name="name__given">
+                <empty-values/>
+            </column>
+            <column column="name_official_text"
+                converter="cdc.datamodel.converters.DummyConverter" name="name_official_text">
+                <empty-values/>
+            </column>
+            <column column="name_official_family"
+                converter="cdc.datamodel.converters.DummyConverter" name="name_official_family">
+                <empty-values/>
+            </column>
+            <column column="name_official_suffix"
+                converter="cdc.datamodel.converters.DummyConverter" name="name_official_suffix">
+                <empty-values/>
+            </column>
+            <column column="name_official_given"
+                converter="cdc.datamodel.converters.DummyConverter" name="name_official_given">
+                <empty-values/>
+            </column>
+            <column column="name_usual_text"
+                converter="cdc.datamodel.converters.DummyConverter" name="name_usual_text">
+                <empty-values/>
+            </column>
+            <column column="name_usual_family"
+                converter="cdc.datamodel.converters.DummyConverter" name="name_usual_family">
+                <empty-values/>
+            </column>
+            <column column="name_usual_suffix"
+                converter="cdc.datamodel.converters.DummyConverter" name="name_usual_suffix">
+                <empty-values/>
+            </column>
+            <column column="name_usual_given"
+                converter="cdc.datamodel.converters.DummyConverter" name="name_usual_given">
+                <empty-values/>
+            </column>
+            <column column="gender"
+                converter="cdc.datamodel.converters.DummyConverter" name="gender">
+                <empty-values/>
+            </column>
+            <column column="DOB"
+                converter="cdc.datamodel.converters.DummyConverter" name="DOB">
+                <empty-values/>
+            </column>
+            <column column="telecom_phone_mobile"
+                converter="cdc.datamodel.converters.DummyConverter" name="telecom_phone_mobile">
+                <empty-values/>
+            </column>
+            <column column="telecom_phone_work"
+                converter="cdc.datamodel.converters.DummyConverter" name="telecom_phone_work">
+                <empty-values/>
+            </column>
+            <column column="telecom_phone_home"
+                converter="cdc.datamodel.converters.DummyConverter" name="telecom_phone_home">
+                <empty-values/>
+            </column>
+            <column column="telecom_email_work"
+                converter="cdc.datamodel.converters.DummyConverter" name="telecom_email_work">
+                <empty-values/>
+            </column>
+            <column column="telecom_email_home"
+                converter="cdc.datamodel.converters.DummyConverter" name="telecom_email_home">
+                <empty-values/>
+            </column>
+            <column column="fullUrl"
+                converter="cdc.datamodel.converters.DummyConverter" name="fullUrl">
+                <empty-values/>
+            </column>
+        </row-model>
+        <preprocessing>
+            <deduplication>
+                <deduplication-condition acceptance-level="60">
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="id" weight="5">
+                        <params/>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="identifier_SSN" empty-match="0.29" weight="5">
+                        <params>
+                            <param name="math-level-end" value="0.25"/>
+                            <param name="match-level-start" value="0.09"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.JaroWinkler"
+                        column="name__text" empty-match="0.25" weight="4">
+                        <params>
+                            <param name="pref-length" value="4"/>
+                            <param name="pref-weight" value="0.1"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="name__family" weight="5">
+                        <params>
+                            <param name="math-level-end" value="0.4"/>
+                            <param name="match-level-start" value="0.2"/>
+                        </params>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="name__suffix" weight="4">
+                        <params/>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="name__given" weight="5">
+                        <params>
+                            <param name="math-level-end" value="0.4"/>
+                            <param name="match-level-start" value="0.2"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.JaroWinkler"
+                        column="name_official_text" empty-match="0.25" weight="4">
+                        <params>
+                            <param name="pref-length" value="4"/>
+                            <param name="pref-weight" value="0.1"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="name_official_family" empty-match="0.25" weight="5">
+                        <params>
+                            <param name="math-level-end" value="0.4"/>
+                            <param name="match-level-start" value="0.2"/>
+                        </params>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="name_official_suffix" weight="4">
+                        <params/>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="name_official_given" weight="5">
+                        <params>
+                            <param name="math-level-end" value="0.4"/>
+                            <param name="match-level-start" value="0.2"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.JaroWinkler"
+                        column="name_usual_text" weight="4">
+                        <params>
+                            <param name="pref-length" value="4"/>
+                            <param name="pref-weight" value="0.1"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="name_usual_family" weight="5">
+                        <params>
+                            <param name="math-level-end" value="0.4"/>
+                            <param name="match-level-start" value="0.2"/>
+                        </params>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="name_usual_suffix" weight="4">
+                        <params/>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="name_usual_given" weight="5">
+                        <params>
+                            <param name="math-level-end" value="0.4"/>
+                            <param name="match-level-start" value="0.2"/>
+                        </params>
+                    </condition>
+                    <condition
+                        class="cdc.impl.distance.EqualFieldsDistance"
+                        column="gender" weight="5">
+                        <params/>
+                    </condition>
+                    <condition class="cdc.impl.distance.DateDistance"
+                        column="DOB" empty-match="0.25" weight="5">
+                        <params>
+                            <param name="date-format-right" value="yyyy-MM-dd"/>
+                            <param name="difference-after" value="0"/>
+                            <param name="date-format-left" value="yyyy-MM-dd"/>
+                            <param name="difference-before" value="0"/>
+                            <param name="use-lineral-approximation" value="true"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="telecom_phone_mobile" weight="5">
+                        <params>
+                            <param name="math-level-end" value="0.25"/>
+                            <param name="match-level-start" value="0.1"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="telecom_phone_work" weight="4">
+                        <params>
+                            <param name="math-level-end" value="0.25"/>
+                            <param name="match-level-start" value="0.1"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="telecom_phone_home" weight="5">
+                        <params>
+                            <param name="math-level-end" value="0.25"/>
+                            <param name="match-level-start" value="0.1"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="telecom_email_work" empty-match="0.25" weight="6">
+                        <params>
+                            <param name="math-level-end" value="0.25"/>
+                            <param name="match-level-start" value="0.1"/>
+                        </params>
+                    </condition>
+                    <condition class="cdc.impl.distance.EditDistance"
+                        column="telecom_email_home" empty-match="0.25" weight="6">
+                        <params>
+                            <param name="math-level-end" value="0.25"/>
+                            <param name="match-level-start" value="0.1"/>
+                        </params>
+                    </condition>
+                </deduplication-condition>
+               <hashing-function
+                    columns="identifier_SSN,identifier_SSN" hash="prefix(3)"/>
+                <minus-file file="{{jobDir}}/duplicates.csv"/>
+                <dedupe-file file="{{jobDir}}/deduplicated-source.csv"/>
+            </deduplication>
+        </preprocessing>
+    </left-data-source>
+</configuration>
