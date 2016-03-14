@@ -91,6 +91,20 @@ public class RecordMatchRequestProcessor {
   private static final String SEARCH_EXPR = "searchExpression";
   private static final String RESOURCE_URL = "resourceUrl";
 
+  /**
+   * fullUrl is constructed as server base + resource type + logical id (e.g.,
+   * http://serverbase/Patient/123).
+   */
+  public static final String FULLURL_FORMAT_SIMPLE = "simple";
+  /**
+   * fullUrl is constructed as server base + resource type + logical id +
+   * version info (e.g., http://serverbase/Patient/123/_history/1).
+   */
+  public static final String FULLURL_FORMAT_VERSIONED = "versioned";
+
+  /** format to use to construct the fullUrl returned in the results. */
+  private String fullUrlFormat = FULLURL_FORMAT_SIMPLE;
+
   public void process(Bundle bundle) {
     if (BundleType.MESSAGE.equals(bundle.getType())) {
       // Create a CSV data source for FRIL
@@ -98,10 +112,13 @@ public class RecordMatchRequestProcessor {
 
       final List<BundleEntryComponent> bundleEntries = bundle.getEntry();
       try {
-        // the first entry is supposed to be the MessageHeader
+        // The first entry is supposed to be the MessageHeader
+        // This will force an exception if not true. 
         final MessageHeader msgHdr = (MessageHeader) bundleEntries.get(0)
             .getResource();
-
+        // Keep above from getting optimized out
+        LOG.trace("msg hdr id {}", msgHdr.getId());
+        
         Parameters masterQryParams = null;
         Parameters queryQryParams = null;
         String masterSearchUrl = null;
@@ -237,16 +254,15 @@ public class RecordMatchRequestProcessor {
     final List<Resource> resources = resultSplitter.splitBundle(searchResults);
 
     final File dataFile = createDataSourceFile(jobDir, fileName);
-    writeData(dataFile, resources, serverBase);
+    writeData(dataFile, resources, serverBase, true);
 
     // retrieve other pages of search results
     Bundle nextResults = searchResults;
     while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
       nextResults = fhirRestClient.loadPage().next(nextResults).execute();
       List<Resource> nextResources = resultSplitter.splitBundle(nextResults);
-      writeData(dataFile, nextResources, serverBase);
+      writeData(dataFile, nextResources, serverBase, false);
     }
-
   }
 
   /**
@@ -286,8 +302,8 @@ public class RecordMatchRequestProcessor {
    * @return
    * @throws IOException
    */
-  File prepareMatchingRuleConfiguration(boolean isDeduplication,
-      File jobDir) throws IOException {
+  File prepareMatchingRuleConfiguration(boolean isDeduplication, File jobDir)
+      throws IOException {
     final String templateFileStr = isDeduplication ? getDeduplicationTemplate()
         : getLinkageTemplate();
     if (templateFileStr == null) {
@@ -460,7 +476,7 @@ public class RecordMatchRequestProcessor {
   }
 
   private SecureRandom fileSuffixRand = new SecureRandom();
-  
+
   protected File newRunDir(String workDir) {
     final Calendar cal = Calendar.getInstance();
     final StringBuilder sb = new StringBuilder();
@@ -484,6 +500,7 @@ public class RecordMatchRequestProcessor {
   }
 
   private final char COMMA = ',';
+  private final char SLASH = '/';
   private static final String DOUBLE_QUOTE = "\"";
 
   /**
@@ -496,10 +513,12 @@ public class RecordMatchRequestProcessor {
    * @param serverBase
    *          server based to which to preprend the resource id (to build
    *          fullUrl)
+   * @param writeColumnTitles
+   *          true to write a line containing column titles
    * @throws IOException
    */
-  private void writeData(File f, List<Resource> resources, String serverBase)
-      throws IOException {
+  private void writeData(File f, List<Resource> resources, String serverBase,
+      boolean writeColumnTitles) throws IOException {
     // return fast if there is nothing to do
     if (resources.size() == 0) {
       return;
@@ -518,22 +537,35 @@ public class RecordMatchRequestProcessor {
     final SimplePatientCsvFormat fmt = new SimplePatientCsvFormat();
 
     try {
-      bw.write(fmt.getHeaders());
-      bw.write(COMMA);
-      bw.write("fullUrl");
-      bw.newLine();
+      if (writeColumnTitles) {
+        bw.write(fmt.getHeaders());
+        bw.write(COMMA);
+        bw.write("fullUrl");
+        bw.newLine();
+      }
       // Process each resource in the list
       for (Resource r : resources) {
         if (ResourceType.Patient.equals(r.getResourceType())) {
           // convert resource to CSV
-          String csv = fmt.toCSV((Patient) r);
+          String csv = fmt.toCsv((Patient) r);
           if (csv != null) {
             bw.write(csv);
+
+            // Add fullURL to the end of the line
             bw.write(COMMA);
             bw.write(DOUBLE_QUOTE);
             bw.write(fullUrlBase);
-            bw.write(r.getId());
+            if (FULLURL_FORMAT_VERSIONED.equals(getFullUrlFormat())) {
+              // HAPI FHIR provides <id>/_history/<version>
+              bw.write(r.getId());
+            } else {
+              // use SIMPLE format
+              bw.write(r.getIdElement().getResourceType());
+              bw.write(SLASH);
+              bw.write(r.getIdElement().getIdPart());
+            }
             bw.write(DOUBLE_QUOTE);
+
             bw.newLine();
           }
         } else {
@@ -549,7 +581,8 @@ public class RecordMatchRequestProcessor {
   /**
    * Searches classpath and then system for a file with the specified name.
    * 
-   * @param name name of template file to load
+   * @param name
+   *          name of template file to load
    * @return
    */
   protected Template loadTemplate(String name) throws FileNotFoundException {
@@ -561,7 +594,7 @@ public class RecordMatchRequestProcessor {
       instream = System.class.getResourceAsStream(name);
     }
     if (instream == null) {
-        instream = new FileInputStream(name);
+      instream = new FileInputStream(name);
     }
 
     if (instream != null) {
@@ -667,6 +700,21 @@ public class RecordMatchRequestProcessor {
    */
   public final void setLinkageTemplate(String linkageTemplate) {
     this.linkageTemplate = linkageTemplate;
+  }
+
+  /**
+   * @return the fullUrlFormat
+   */
+  public final String getFullUrlFormat() {
+    return fullUrlFormat;
+  }
+
+  /**
+   * @param fullUrlFormat
+   *          the fullUrlFormat to set
+   */
+  public final void setFullUrlFormat(String fullUrlFormat) {
+    this.fullUrlFormat = fullUrlFormat;
   }
 
 }

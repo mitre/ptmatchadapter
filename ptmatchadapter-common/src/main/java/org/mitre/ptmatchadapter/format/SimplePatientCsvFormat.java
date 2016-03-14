@@ -59,7 +59,7 @@ public class SimplePatientCsvFormat {
   private static final Logger LOG = LoggerFactory
       .getLogger(SimplePatientCsvFormat.class);
 
-  private static final int INITIAL_ROW_LENGTH = 1000;
+  private static final int INITIAL_ROW_LENGTH = 500;
   private static final String COMMA = ",";
   private static final String DOUBLE_QUOTE = "\"";
   private static final String UNDERSCORE = "_";
@@ -71,12 +71,13 @@ public class SimplePatientCsvFormat {
 
   public static final String TEXT_NAME_PART = "text";
 
-  private ContactPointSystem [] telecomSystems = 
-    {ContactPointSystem.PHONE, ContactPointSystem.EMAIL};
-  private ContactPointUse [] telecomUses = {ContactPointUse.WORK, ContactPointUse.HOME};
+  private ContactPointSystem[] telecomSystems = { ContactPointSystem.PHONE,
+      ContactPointSystem.EMAIL };
+  private ContactPointUse[] telecomUses = { ContactPointUse.WORK,
+      ContactPointUse.HOME };
 
-  public static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-  
+  public final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
   /**
    * Returns column titles as a comma-separated strings.
    * 
@@ -116,7 +117,6 @@ public class SimplePatientCsvFormat {
     sb.append(COMMA);
     sb.append("DOB");
 
-
     sb.append(COMMA);
     sb.append("telecom_phone_mobile");
 
@@ -140,14 +140,19 @@ public class SimplePatientCsvFormat {
    * @param patient
    *          the patient resource to serialize to a CSV string
    * @return
+   *          comma-delimited values of fields associated with the Patient
    */
-  public String toCSV(Patient patient) {
+  public String toCsv(Patient patient) {
     final StringBuilder sb = new StringBuilder(INITIAL_ROW_LENGTH);
     JXPathContext patientCtx = JXPathContext.newContext(patient);
 
-    // resource id
-    if (patient.getId() != null) {
-      sb.append(patient.getId());
+    try {
+      // resource id (logical id only)
+      sb.append(patient.getIdElement().getIdPart());
+    } catch (NullPointerException e) {
+      // check for null by exception since it is unexpected. 
+      // Privacy concern keeps me from logging anything about this patient.
+      LOG.error("Patient has null identifier element. This is unexpected!");
     }
     sb.append(COMMA);
 
@@ -180,10 +185,10 @@ public class SimplePatientCsvFormat {
               sb.append(val.toString());
             }
           } else {
-            // other supported parts return lists of string types 
+            // other supported parts return lists of string types
             Object namePart = nameCtx.getValue(part);
             if (namePart instanceof List<?>) {
-              List <StringType> partList = (List<StringType>) namePart;
+              List<StringType> partList = (List<StringType>) namePart;
               if (partList.size() > 0) {
                 sb.append(partList.get(0).getValue());
               }
@@ -212,27 +217,27 @@ public class SimplePatientCsvFormat {
 
     sb.append(COMMA);
     sb.append(buidContactInfo(patient));
-    
+
     return sb.toString();
   }
 
   /**
-   * Concatenate contact point information as a string of comma-separated values.
+   * Concatenate contact point information as a string of comma-separated
+   * values.
    * 
    * @param patient
-   * @return   
-   *    String containing comma-separated list of contact information 
+   * @return String containing comma-separated list of contact information
    */
   private String buidContactInfo(Patient patient) {
     final StringBuilder sb = new StringBuilder(100);
-    
-    List<ContactPoint> matches = ContactPointUtil.find(
-        patient.getTelecom(), ContactPointSystem.PHONE, ContactPointUse.MOBILE);
+
+    List<ContactPoint> matches = ContactPointUtil.find(patient.getTelecom(),
+        ContactPointSystem.PHONE, ContactPointUse.MOBILE);
 
     if (matches.size() > 0) {
       sb.append(matches.get(0).getValue());
     }
-    
+
     for (ContactPointSystem system : telecomSystems) {
       for (ContactPointUse use : telecomUses) {
         matches = ContactPointUtil.find(patient.getTelecom(), system, use);
@@ -242,7 +247,7 @@ public class SimplePatientCsvFormat {
         }
       }
     }
-    
+
     return sb.toString();
   }
 
