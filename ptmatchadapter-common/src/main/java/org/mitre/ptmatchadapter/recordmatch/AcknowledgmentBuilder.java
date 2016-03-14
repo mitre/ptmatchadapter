@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.mitre.ptmatchadapter.recordmatch;
 
 import java.util.Date;
 import java.util.UUID;
 
 import org.bson.types.ObjectId;
+
 import org.hl7.fhir.instance.model.Bundle;
 import org.hl7.fhir.instance.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.instance.model.Bundle.BundleType;
@@ -39,9 +41,9 @@ import org.hl7.fhir.instance.model.MessageHeader.ResponseType;
 public class AcknowledgmentBuilder {
 
   private String sourceName = "Unknown";
-  
+
   private String sourceEndpointUri = "http://acme.com/record-matcher";
-  
+
   public Bundle build(Bundle request) {
     if (BundleType.MESSAGE.equals(request.getType())) {
       final Bundle ackMsg = new Bundle();
@@ -64,7 +66,8 @@ public class AcknowledgmentBuilder {
 
   private MessageHeader buildMessageHeader(Bundle request) {
     // Extract the Message Header from the Request
-    final MessageHeader reqMsgHdr = (MessageHeader) request.getEntry().get(0).getResource();
+    final MessageHeader reqMsgHdr = (MessageHeader) request.getEntry().get(0)
+        .getResource();
 
     final MessageHeader msgHdr = new MessageHeader();
     ObjectId id = new ObjectId();
@@ -76,7 +79,7 @@ public class AcknowledgmentBuilder {
     src.setName(sourceName);
     src.setEndpoint(sourceEndpointUri);
     msgHdr.setSource(src);
-    
+
     // the source of the request is our destination
     final MessageDestinationComponent dest = new MessageDestinationComponent();
     dest.setEndpoint(reqMsgHdr.getSource().getEndpoint());
@@ -102,7 +105,8 @@ public class AcknowledgmentBuilder {
   }
 
   /**
-   * @param endpointUri the endpointUri to set
+   * @param endpointUri
+   *          the endpointUri to set
    */
   public final void setSourceEndpointUri(String endpointUri) {
     this.sourceEndpointUri = endpointUri;
@@ -116,7 +120,8 @@ public class AcknowledgmentBuilder {
   }
 
   /**
-   * @param sourceName the sourceName to set
+   * @param sourceName
+   *          the sourceName to set
    */
   public final void setSourceName(String sourceName) {
     this.sourceName = sourceName;

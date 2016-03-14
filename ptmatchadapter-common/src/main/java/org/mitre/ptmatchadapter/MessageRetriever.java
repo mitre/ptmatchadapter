@@ -80,7 +80,8 @@ public class MessageRetriever {
       results = query.execute();
 
     } catch (BaseServerResponseException e) {
-      LOG.warn(String.format("Error response from server.  code: %d, %s", e.getStatusCode(), e.getMessage()));
+      LOG.warn(String.format("Error response from server.  code: %d, %s", 
+          e.getStatusCode(), e.getMessage()));
     } catch (Exception e) {
       LOG.warn(String.format("Unable to retrieve messages: %s", e.getMessage()), e);
     } finally {

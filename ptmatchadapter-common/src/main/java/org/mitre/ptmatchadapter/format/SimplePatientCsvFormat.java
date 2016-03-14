@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.mitre.ptmatchadapter.format;
 
 import java.text.DateFormat;
@@ -70,7 +71,8 @@ public class SimplePatientCsvFormat {
 
   public static final String TEXT_NAME_PART = "text";
 
-  private ContactPointSystem [] telecomSystems = {ContactPointSystem.PHONE, ContactPointSystem.EMAIL};
+  private ContactPointSystem [] telecomSystems = 
+    {ContactPointSystem.PHONE, ContactPointSystem.EMAIL};
   private ContactPointUse [] telecomUses = {ContactPointUse.WORK, ContactPointUse.HOME};
 
   public static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -78,7 +80,7 @@ public class SimplePatientCsvFormat {
   /**
    * Returns column titles as a comma-separated strings.
    * 
-   * @return
+   * @return String of comma-separated column titles
    */
   public String getHeaders() {
     final StringBuilder sb = new StringBuilder(INITIAL_ROW_LENGTH);
@@ -218,7 +220,8 @@ public class SimplePatientCsvFormat {
    * Concatenate contact point information as a string of comma-separated values.
    * 
    * @param patient
-   * @return
+   * @return   
+   *    String containing comma-separated list of contact information 
    */
   private String buidContactInfo(Patient patient) {
     final StringBuilder sb = new StringBuilder(100);
