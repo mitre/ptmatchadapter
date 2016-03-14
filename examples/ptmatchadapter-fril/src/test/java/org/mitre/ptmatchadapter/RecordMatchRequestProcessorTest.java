@@ -19,6 +19,7 @@ package org.mitre.ptmatchadapter;
 import static org.junit.Assert.*;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileSystems;
@@ -48,8 +49,8 @@ public class RecordMatchRequestProcessorTest {
    * .
    */
   @Test
-  public void testLoadTemplate() {
-    RecordMatchRequestProcessor proc = new RecordMatchRequestProcessor();
+  public void testLoadTemplate() throws FileNotFoundException{
+    final RecordMatchRequestProcessor proc = new RecordMatchRequestProcessor();
 
     assertNotNull(proc.loadTemplate(
         "/templates/fril-dedupe-allFieldsNearlyEqualWeight-accept60.xml"));
@@ -57,6 +58,14 @@ public class RecordMatchRequestProcessorTest {
         "templates/fril-dedupe-allFieldsNearlyEqualWeight-accept60.xml"));
   }
 
+  @Test(expected = FileNotFoundException.class) 
+  public void testLoadTemplateBadPath() throws FileNotFoundException {
+    final RecordMatchRequestProcessor proc = new RecordMatchRequestProcessor();
+
+    assertNotNull(proc.loadTemplate("path/to/nowhere.xml"));
+    fail("File Not Found Exception expected");
+  }
+  
   @Test
   public void testPrepareConfigFile() {
     try {

@@ -602,7 +602,7 @@ public class RecordMatchRequestProcessor {
    * @param name name of template file to load
    * @return
    */
-  protected Template loadTemplate(String name) {
+  protected Template loadTemplate(String name) throws FileNotFoundException {
     Template template = null;
     InputStream instream = this.getClass().getClassLoader()
         .getResourceAsStream(name);
@@ -611,11 +611,7 @@ public class RecordMatchRequestProcessor {
       instream = System.class.getResourceAsStream(name);
     }
     if (instream == null) {
-      try {
         instream = new FileInputStream(name);
-      } catch (FileNotFoundException e) {
-        // Ignore
-      }
     }
 
     if (instream != null) {
@@ -629,8 +625,6 @@ public class RecordMatchRequestProcessor {
           // skip
         }
       }
-    } else {
-      LOG.warn("instream is null");
     }
     return template;
   }
