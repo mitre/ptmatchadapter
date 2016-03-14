@@ -164,59 +164,9 @@ public class RecordMatchRequestProcessor {
           // Retrieve the data associated with the search urls
           retrieveAndStoreData(masterSearchUrl, masterServerBase, jobDir, "master");
 
-          // IQuery<Bundle> query =
-          // fhirRestClient.search().byUrl(masterSearchUrl)
-          // .returnBundle(Bundle.class);
-          //
-          // // Perform a search
-          // final Bundle masterSetResults = query.execute();
-          //
-          // // Split the bundle into its component resources
-          // final SearchResultSplitter resultSplitter = new
-          // SearchResultSplitter();
-          // final List<Resource> masterResources = resultSplitter
-          // .splitBundle(masterSetResults);
-          //
-          // final File masterFile = createDataSourceFile(jobDir, "master");
-          // writeData(masterFile, masterResources, masterServerBase);
-          //
-          // // retrieve other pages of search results
-          // Bundle nextResults = masterSetResults;
-          // while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
-          // nextResults =
-          // fhirRestClient.loadPage().next(nextResults).execute();
-          // List<Resource> nextResources =
-          // resultSplitter.splitBundle(nextResults);
-          // writeData(masterFile, nextResources, masterServerBase);
-          // }
-
           if (querySearchUrl != null) {
             isDeduplication = false;
-
             retrieveAndStoreData(querySearchUrl, queryServerBase, jobDir, "query");
-
-            // Retrieve the data associated with the search urls
-//            query = fhirRestClient.search().byUrl(querySearchUrl)
-//                .returnBundle(Bundle.class);
-//
-//            // Perform a search
-//            final Bundle querySetResults = query.execute();
-//
-//            // Split the bundle into its component resources
-//            final List<Resource> queryResources = resultSplitter
-//                .splitBundle(querySetResults);
-//
-//            // Create a CSV data source for FRIL
-//            final File queryFile = createDataSourceFile(jobDir, "query");
-//            writeData(queryFile, queryResources, queryServerBase);
-//
-//            nextResults = querySetResults;
-//            while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
-//              nextResults = fhirRestClient.loadPage().next(nextResults).execute();
-//              List<Resource> nextResources = resultSplitter
-//                  .splitBundle(nextResults);
-//              writeData(queryFile, nextResources, queryServerBase);
-//            }
           }
 
         } catch (BaseServerResponseException e) {
