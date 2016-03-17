@@ -2,176 +2,163 @@
  * PtMatchAdapter - a patient matching system adapter
  * Copyright (C) 2016 The MITRE Corporation.  ALl rights reserved.
  *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
+ * </p>
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * </p>
  */
-package org.mitre.ptmatchadapter.recordmatch;
 
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+package org.mitre.ptmatchadapter.fril;
 
-import org.bson.types.ObjectId;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVRecord;
+
 import org.hl7.fhir.instance.model.Bundle;
-import org.hl7.fhir.instance.model.OperationOutcome;
 import org.hl7.fhir.instance.model.Bundle.BundleEntryComponent;
-import org.hl7.fhir.instance.model.Bundle.BundleType;
-import org.hl7.fhir.instance.model.MessageHeader.MessageDestinationComponent;
-import org.hl7.fhir.instance.model.MessageHeader.MessageHeaderResponseComponent;
-import org.hl7.fhir.instance.model.MessageHeader.MessageSourceComponent;
+import org.hl7.fhir.instance.model.Bundle.BundleEntrySearchComponent;
+import org.hl7.fhir.instance.model.Bundle.BundleLinkComponent;
+import org.hl7.fhir.instance.model.CodeType;
+import org.hl7.fhir.instance.model.DecimalType;
+import org.hl7.fhir.instance.model.Extension;
 import org.hl7.fhir.instance.model.MessageHeader.ResponseType;
-import org.hl7.fhir.instance.model.OperationOutcome.OperationOutcomeIssueComponent;
-import org.hl7.fhir.instance.model.MessageHeader;
+import org.hl7.fhir.instance.model.StringType;
+import org.hl7.fhir.instance.model.UriType;
+
+import org.mitre.ptmatchadapter.recordmatch.BasicRecordMatchResultsBuilder;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Michael Los, mel@mitre.org
  *
  */
-public class RecordMatchResultsBuilder {
+public class RecordMatchResultsBuilder extends BasicRecordMatchResultsBuilder {
+  private static final Logger LOG = LoggerFactory
+      .getLogger(RecordMatchResultsBuilder.class);
 
-  private Bundle requestMsg;
-  private OperationOutcome.IssueSeverity outcomeSeverity = OperationOutcome.IssueSeverity.INFORMATION;
-  private OperationOutcome.IssueType outcomeCode  = OperationOutcome.IssueType.INFORMATIONAL;
-  private String outcomeDiagnostics;
-  private String sourceName;
-  private String sourceEndpoint;
-  private ResponseType responseCode;
+  private File duplicatesFile;
 
   public RecordMatchResultsBuilder(Bundle requestMsg, ResponseType respCode) {
-    if (requestMsg == null) {
-      throw new IllegalArgumentException("Null Request Message Found");
-    } else if (BundleType.MESSAGE.equals(requestMsg.getType())
-        && ((MessageHeader) requestMsg.getEntry().get(0).getResource()) != null) {
-      this.requestMsg = requestMsg;
-    } else {
-      throw new IllegalArgumentException("Invalid Request Message Found");
-    }
-    if (respCode == null) {
-      throw new IllegalArgumentException("Null Response Code Found");
-    }
-    this.responseCode = respCode;
+    super(requestMsg, respCode);
   }
 
-  public Bundle build() {
-    // check parameters are valid; exception will be thrown, if invalid found
-    checkParameters();
+  /**
+   * @see BasicRecordMatchResultsBuilder#build()
+   */
+  public Bundle build() throws IOException {
 
-    final Bundle resultMsg = new Bundle();
+    final Bundle resultMsg = super.build();
 
-    ObjectId id = new ObjectId();
-    resultMsg.setId(id.toHexString());
+    // Add entries for the Linked Records
+    addLinkedRecordEntries(resultMsg);
 
-    resultMsg.setType(BundleType.MESSAGE);
-
-    final BundleEntryComponent msgHdrEntry = new BundleEntryComponent();
-    msgHdrEntry.setFullUrl(UUID.randomUUID().toString());
-    final MessageHeader msgHdr = buildMessageHeader(requestMsg);
-    msgHdrEntry.setResource(msgHdr);
-    resultMsg.addEntry(msgHdrEntry);
-
-    final BundleEntryComponent opOutcomeEntry = new BundleEntryComponent();
-    msgHdrEntry.setFullUrl(UUID.randomUUID().toString());
-    final OperationOutcome opOutcome = buildOperationOutcome();
-    opOutcomeEntry.setResource(opOutcome);
-    resultMsg.addEntry(opOutcomeEntry);
-    
-    
     return resultMsg;
   }
 
-  private void checkParameters() {
-  }
+  private static final int DUPLICATE_ID_COL = 0;
+  private static final int SCORE_COL = 1;
+  private static final int FULL_URL_COL = 2;
 
-  private MessageHeader buildMessageHeader(Bundle request) {
-    // Extract the Message Header from the Request
-    final MessageHeader reqMsgHdr = (MessageHeader) request.getEntry().get(0).getResource();
+  /**
+   *
+   * @param bundle
+   *          Bundle to which an entry for each linked record will be added
+   * @throws IOException
+   *           thrown when the file containing the linked results is not found
+   *           or could not be processed
+   */
+  private void addLinkedRecordEntries(Bundle bundle) throws IOException {
+    final Reader in = new FileReader(duplicatesFile);
+    try {
+      final Iterable<CSVRecord> records = CSVFormat.DEFAULT.parse(in);
 
-    final MessageHeader msgHdr = new MessageHeader();
-    ObjectId id = new ObjectId();
-    msgHdr.setId(id.toHexString());
-    msgHdr.setTimestamp(new Date());
-    msgHdr.setEvent(reqMsgHdr.getEvent());
+      String refRecordUrl = null;
+      String curDupId = "0";
 
-    final MessageSourceComponent src = buildSource(reqMsgHdr);
-    msgHdr.setSource(src);
+      // see https://www.hl7.org/fhir/valueset-patient-mpi-match.html
+      final CodeType certain = new CodeType("certain");
+      final CodeType probable = new CodeType("probable");
+      final CodeType possible = new CodeType("possible");
+      final CodeType certainlyNot = new CodeType("certainly-not");
 
-    // the source of the request is our destination
-    final MessageDestinationComponent dest = new MessageDestinationComponent();
-    dest.setEndpoint(reqMsgHdr.getSource().getEndpoint());
-    dest.setName(reqMsgHdr.getSource().getName());
-    msgHdr.addDestination(dest);
+      for (CSVRecord record : records) {
+        String duplicateId = record.get(DUPLICATE_ID_COL);
+        String scoreStr = record.get(SCORE_COL);
+        String fullUrl = record.get(FULL_URL_COL);
 
-    final MessageHeaderResponseComponent resp = new MessageHeaderResponseComponent();
-    // This library prefixes identifier w/ 'MessageHeader/', so strip that off
-    final String idStr = reqMsgHdr.getId();
-    int pos = idStr.indexOf("/");
-    resp.setIdentifier(idStr.substring(pos + 1));
-    resp.setCode(responseCode);
-    msgHdr.setResponse(resp);
+        if (curDupId.equals(duplicateId)) {
+          if (refRecordUrl == null) {
+            LOG.warn("Unexpected condition, curDupId {}, duplicateId {}", curDupId,
+                duplicateId);
+            continue;
+          }
 
-    return msgHdr;
-  }
+          BundleEntryComponent entry = new BundleEntryComponent();
+          entry.setFullUrl(refRecordUrl);
 
-  private MessageSourceComponent buildSource(MessageHeader reqMsgHdr) {
-    final MessageSourceComponent src = new MessageSourceComponent();
-    String name = sourceName;
-    String endpoint = sourceEndpoint;
+          BundleEntrySearchComponent search = new BundleEntrySearchComponent();
+          // fril returns results 0 - 100; normalize to 0 - 1;
+          double score = Double.valueOf(scoreStr).doubleValue() / 100.;
+          search.setScoreElement(new DecimalType(score));
 
-    if (sourceEndpoint == null) {
-      // if only one destination in request message; assume it is us
-      final List<MessageDestinationComponent> dests = reqMsgHdr.getDestination();
-      if (dests.size() == 1) {
-        name = dests.get(0).getName();
-        endpoint = dests.get(0).getEndpoint();
+          // TODO Add Extension that maps score value to a term (e.g., probable)
+          Extension searchExt = new Extension(new UriType(
+              "http://hl7.org/fhir/StructureDefinition/patient-mpi-match"));
+          if (score > 0.85) {
+            searchExt.setValue(certain);
+          } else if (score > 0.65) {
+            searchExt.setValue(probable);
+          } else if (score > .45) {
+            searchExt.setValue(possible);
+          } else {
+            searchExt.setValue(certainlyNot);
+          }
+          search.addExtension(searchExt);
+          entry.setSearch(search);
+
+          // Add information about the resource type
+
+          BundleLinkComponent link = new BundleLinkComponent(new StringType("type"),
+              new UriType("http://hl7.org/fhir/Patient"));
+          entry.addLink(link);
+
+          // Add the link to the duplicate record
+          link = new BundleLinkComponent(
+              new StringType("related"), new UriType(fullUrl));
+          entry.addLink(link);
+
+          bundle.addEntry(entry);
+        } else {
+          // new set of duplicates
+          curDupId = duplicateId;
+          refRecordUrl = fullUrl;
+        }
       }
+    } finally {
+      in.close();
     }
-
-    if (name != null && !name.isEmpty()) {
-      src.setName(name);
-    }
-    if (endpoint == null || endpoint.isEmpty()) {
-      throw new IllegalStateException("Cannot Determine Source Endpoint for Response Message");
-    }
-    src.setEndpoint(endpoint);
-    return src;
-  }
-  
-  private OperationOutcome buildOperationOutcome() {
-    final OperationOutcome opOutcome = new OperationOutcome();
-
-    ObjectId id = new ObjectId();
-    opOutcome.setId(id.toHexString());
-    
-    if (outcomeSeverity != null && outcomeCode != null) {
-      final OperationOutcomeIssueComponent  issue = new OperationOutcomeIssueComponent();
-      issue.setSeverity(outcomeSeverity);
-      issue.setCode(outcomeCode);
-      opOutcome.addIssue(issue);
-    }
-    return opOutcome;
   }
 
-  public RecordMatchResultsBuilder outcomeIssueSeverity(OperationOutcome.IssueSeverity severity) {
-    outcomeSeverity = severity;
-    return this;
-  }
 
-  public RecordMatchResultsBuilder outcomeIssueCode(OperationOutcome.IssueType code) {
-    outcomeCode = code;
-    return this;
-  }
-
-  public RecordMatchResultsBuilder outcomeIssueDiagnostics(String diagnostics) {
-    outcomeDiagnostics = diagnostics;
+  public RecordMatchResultsBuilder duplicates(File file) {
+    duplicatesFile = file;
     return this;
   }
 }

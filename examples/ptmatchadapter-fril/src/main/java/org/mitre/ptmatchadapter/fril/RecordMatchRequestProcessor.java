@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.mitre.ptmatchadapter;
+package org.mitre.ptmatchadapter.fril;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -32,7 +32,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+
 import org.apache.camel.ProducerTemplate;
+
 import org.hl7.fhir.instance.model.Bundle;
 import org.hl7.fhir.instance.model.MessageHeader;
 import org.hl7.fhir.instance.model.Bundle.BundleEntryComponent;
@@ -43,9 +48,13 @@ import org.hl7.fhir.instance.model.Parameters.ParametersParameterComponent;
 import org.hl7.fhir.instance.model.Patient;
 import org.hl7.fhir.instance.model.Resource;
 import org.hl7.fhir.instance.model.ResourceType;
+
+import org.mitre.ptmatchadapter.SearchResultSplitter;
 import org.mitre.ptmatchadapter.format.SimplePatientCsvFormat;
-import org.mitre.ptmatchadapter.recordmatch.RecordMatchResultsBuilder;
+import org.mitre.ptmatchadapter.fril.config.Configuration;
+import org.mitre.ptmatchadapter.fril.config.Configuration.LeftDataSource.Preprocessing.Deduplication.MinusFile;
 import org.mitre.ptmatchadapter.util.ParametersUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +65,7 @@ import ca.uhn.fhir.rest.client.IGenericClient;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
+
 import cdc.impl.Main;
 import cdc.utils.RJException;
 
@@ -106,6 +116,9 @@ public class RecordMatchRequestProcessor {
   private String fullUrlFormat = FULLURL_FORMAT_SIMPLE;
 
   public void process(Bundle bundle) {
+    Bundle response = null;
+    RecordMatchResultsBuilder respBuilder;
+
     if (BundleType.MESSAGE.equals(bundle.getType())) {
       // Create a CSV data source for FRIL
       final File jobDir = newRunDir(workDir);
@@ -113,12 +126,12 @@ public class RecordMatchRequestProcessor {
       final List<BundleEntryComponent> bundleEntries = bundle.getEntry();
       try {
         // The first entry is supposed to be the MessageHeader
-        // This will force an exception if not true. 
+        // This will force an exception if not true.
         final MessageHeader msgHdr = (MessageHeader) bundleEntries.get(0)
             .getResource();
         // Keep above from getting optimized out
         LOG.trace("msg hdr id {}", msgHdr.getId());
-        
+
         Parameters masterQryParams = null;
         Parameters queryQryParams = null;
         String masterSearchUrl = null;
@@ -163,11 +176,15 @@ public class RecordMatchRequestProcessor {
             (queryQryParams != null));
 
         if (masterSearchUrl == null) {
-          LOG.warn(
-              "Required Parameter for master record set is missing, bundle: {}",
-              bundle.getId());
-          LOG.warn("NOT IMPL: Should return an ERROR RESULT from HERE!!");
-          // TODO Return an Error Result to requester
+          final String errMsg = "Required Parameter for master record set is missing, bundle: "
+              + bundle.getId();
+          LOG.warn(errMsg);
+          // Construct and return an error result
+          respBuilder = new RecordMatchResultsBuilder(bundle,
+              ResponseType.FATALERROR);
+          respBuilder.outcomeIssueDiagnostics(errMsg);
+          response = respBuilder.build();
+          getProducer().sendBody(getProducerEndpointUri(), response);
           return;
         }
 
@@ -206,27 +223,77 @@ public class RecordMatchRequestProcessor {
         final int numMatches = findMatches(isDeduplication, configFile);
         LOG.info("FRIL Numbber of Matches: {}", numMatches);
 
-        if (numMatches >= 0) {
-          // TODO Construct results
-          final RecordMatchResultsBuilder builder = new RecordMatchResultsBuilder(
-              bundle, ResponseType.OK);
-          builder.outcomeIssueDiagnostics("No Matches Found");
-          final Bundle result = builder.build();
+        if (numMatches == 0) {
+          respBuilder = new RecordMatchResultsBuilder(bundle, ResponseType.OK);
+          respBuilder.outcomeDetailText("No Matches Found");
+          response = respBuilder.build();
 
-          LOG.info("### About to send no match result to endpoint");
-          producer.sendBody(getProducerEndpointUri(), result);
+        } else if (numMatches > 0) {
+          // Find the name of the file containing duplicates from the config
+          // file
+          final File dupsFile = getDuplicatesFile(configFile);
+          // Ensure the duplicates file exists
+          if (!dupsFile.exists()) {
+            final String errMsg = "Unable to find duplicates file";
+            LOG.error(errMsg + " at " + dupsFile.getAbsolutePath());
+            throw new FileNotFoundException(errMsg);
+          }
+
+          // Construct results
+          respBuilder = new RecordMatchResultsBuilder(bundle, ResponseType.OK);
+          respBuilder.outcomeDetailText("Deduplication Complete");
+          respBuilder.duplicates(dupsFile);
+          response = respBuilder.build();
 
         } else {
-          // Return an Error Result
+          final String errMsg = "Unknown Processing Error";
+          LOG.error("{} bundleId: {}", errMsg, bundle.getId());
+
+          // Construct an error result
+          respBuilder = new RecordMatchResultsBuilder(bundle,
+              ResponseType.FATALERROR);
+          respBuilder.outcomeIssueDiagnostics(errMsg);
+          response = respBuilder.build();
         }
 
       } catch (Exception e) {
+        final String errMsg = "Unexpected Error";
         LOG.error("Processing bundle: {}", bundle.getId(), e);
-        // TODO Return an error result
+
+        // Construct an error result
+        respBuilder = new RecordMatchResultsBuilder(bundle,
+            ResponseType.FATALERROR);
+        respBuilder.outcomeIssueDiagnostics(errMsg);
+        try {
+          response = respBuilder.build();
+        } catch (IOException ioe) {
+          // only so many times we can attempt to send a response; log error
+          LOG.error("Unable to Send Error Response. request bundle: {}",
+              bundle.getId(), ioe);
+        }
       }
     } else {
-      LOG.info("Unsupported Bundle type: {}", bundle.getType());
-      // TODO Return an error result
+      final String errMsg = "Unsupported Bundle type: "
+          + bundle.getType().toString();
+      LOG.info("{} msgId: {}", errMsg, bundle.getId());
+
+      // Construct an error result
+      respBuilder = new RecordMatchResultsBuilder(bundle, ResponseType.FATALERROR);
+      respBuilder.outcomeIssueDiagnostics(errMsg);
+      try {
+        response = respBuilder.build();
+      } catch (IOException e) {
+        // only so many times we can attempt to send a response; log error
+        LOG.error("Unable to Send Error Response. request bundle: {}",
+            bundle.getId());
+      }
+    }
+
+    // Send the response back to the requester
+    if (response != null) {
+      getProducer().sendBody(getProducerEndpointUri(), response);
+    } else {
+      LOG.error("Null Response for request! bundleId: {}", bundle.getId());
     }
   }
 
@@ -422,6 +489,32 @@ public class RecordMatchRequestProcessor {
     return serverBase;
   }
 
+  final File getDuplicatesFile(File configFile)
+      throws JAXBException, FileNotFoundException {
+    // Read the XML configuration file
+    final JAXBContext jaxbContext = JAXBContext.newInstance(Configuration.class);
+
+    final Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+    final Configuration config = (Configuration) jaxbUnmarshaller
+        .unmarshal(configFile);
+
+    try {
+      // pull the name of the duplicates file from the configuration
+      final MinusFile minusFile = config.getLeftDataSource().getPreprocessing()
+          .getDeduplication().getMinusFile();
+
+      return new File(minusFile.getFile());
+    } catch (NullPointerException e) {
+      final String errMsg = "Unable to find duplicates file";
+      LOG.error(errMsg + " in " + configFile.getAbsolutePath());
+      throw new RuntimeException(errMsg);
+    }
+  }
+
+  /**
+   * Returns the resourceUrl parameter from the Parameters resource.
+   * 
+   */
   private String getResourceUrl(Parameters params) {
     String resourceUrl = null;
 
@@ -538,9 +631,9 @@ public class RecordMatchRequestProcessor {
 
     try {
       if (writeColumnTitles) {
-        bw.write(fmt.getHeaders());
-        bw.write(COMMA);
         bw.write("fullUrl");
+        bw.write(COMMA);
+        bw.write(fmt.getHeaders());
         bw.newLine();
       }
       // Process each resource in the list
@@ -549,10 +642,7 @@ public class RecordMatchRequestProcessor {
           // convert resource to CSV
           String csv = fmt.toCsv((Patient) r);
           if (csv != null) {
-            bw.write(csv);
-
-            // Add fullURL to the end of the line
-            bw.write(COMMA);
+            // put fullURL to the start of the line
             bw.write(DOUBLE_QUOTE);
             bw.write(fullUrlBase);
             if (FULLURL_FORMAT_VERSIONED.equals(getFullUrlFormat())) {
@@ -565,6 +655,9 @@ public class RecordMatchRequestProcessor {
               bw.write(r.getIdElement().getIdPart());
             }
             bw.write(DOUBLE_QUOTE);
+
+            bw.write(COMMA);
+            bw.write(csv);
 
             bw.newLine();
           }

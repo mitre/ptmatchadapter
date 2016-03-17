@@ -14,21 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.mitre.ptmatchadapter;
 
 import java.util.List;
 
 import org.apache.camel.ProducerTemplate;
 import org.hl7.fhir.instance.model.Bundle;
-import org.hl7.fhir.instance.model.MessageHeader;
 import org.hl7.fhir.instance.model.Bundle.BundleEntryComponent;
 import org.hl7.fhir.instance.model.Bundle.BundleType;
+import org.hl7.fhir.instance.model.MessageHeader;
 import org.hl7.fhir.instance.model.MessageHeader.ResponseType;
 import org.hl7.fhir.instance.model.Parameters;
 import org.hl7.fhir.instance.model.Parameters.ParametersParameterComponent;
 import org.hl7.fhir.instance.model.Resource;
 import org.hl7.fhir.instance.model.ResourceType;
-import org.mitre.ptmatchadapter.recordmatch.RecordMatchResultsBuilder;
+import org.mitre.ptmatchadapter.recordmatch.BasicRecordMatchResultsBuilder;
 import org.mitre.ptmatchadapter.util.ParametersUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,12 +60,13 @@ public class NoOpRecordMatchRequestProcessor {
   private static final String RESOURCE_URL = "resourceUrl";
 
   /**
-   * Constructs invokes a single request for the search queries and then generates
-   * a record-match result message that reports zero matches found.  The 
-   * responses to the REST calls for the master and, when provided, query record
-   * sets are ignored.
-   * 
-   * @param bundle  record-match request to process
+   * Constructs invokes a single request for the search queries and then
+   * generates a record-match result message that reports zero matches found.
+   * The responses to the REST calls for the master and, when provided, query
+   * record sets are ignored.
+   *
+   * @param bundle
+   *          record-match request to process
    */
   public void process(Bundle bundle) {
     if (BundleType.MESSAGE.equals(bundle.getType())) {
@@ -134,7 +136,7 @@ public class NoOpRecordMatchRequestProcessor {
             // Perform a search
             querySetResults = query.execute();
           }
-          
+
         } catch (BaseServerResponseException e) {
           LOG.warn(String.format("Error response from server.  code: %d, %s",
               e.getStatusCode(), e.getMessage()));
@@ -147,7 +149,8 @@ public class NoOpRecordMatchRequestProcessor {
           }
         }
 
-        final RecordMatchResultsBuilder builder = new RecordMatchResultsBuilder(bundle,
+        final BasicRecordMatchResultsBuilder builder = new BasicRecordMatchResultsBuilder(
+            bundle,
             ResponseType.OK);
         builder.outcomeIssueDiagnostics("No Matches Found");
         final Bundle result = builder.build();
@@ -165,7 +168,7 @@ public class NoOpRecordMatchRequestProcessor {
 
   /**
    * Constructs a search URL using the information in the Parameters resource.
-   * 
+   *
    * @param params
    *          Parameters resource containing a searchExpression parameter whose
    *          value is a Parameters resource containing a resourceUrl parameter
@@ -255,7 +258,8 @@ public class NoOpRecordMatchRequestProcessor {
   }
 
   /**
-   * @param fhirRestClient the fhirRestClient to set
+   * @param fhirRestClient
+   *          the fhirRestClient to set
    */
   public final void setFhirRestClient(IGenericClient fhirRestClient) {
     this.fhirRestClient = fhirRestClient;

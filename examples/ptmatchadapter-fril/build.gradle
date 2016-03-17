@@ -25,6 +25,8 @@ dependencies {
   compile "org.apache.camel:camel-http4:${camelVersion}"
   compile "org.apache.camel:camel-stream:${camelVersion}"
 
+  compile 'org.apache.commons:commons-csv:1.2'
+
   compile "ca.uhn.hapi.fhir:hapi-fhir-base:${hapiFhirVersion}"
   compile "ca.uhn.hapi.fhir:hapi-fhir-structures-hl7org-dstu2:${hapiFhirVersion}"
 
