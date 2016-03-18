@@ -58,7 +58,7 @@ dependencies {
   runtime 'org.swinglabs:swing-layout:1.0.3'
   runtime 'org.swinglabs:swingx:1.6.1'
   
-  //https://github.com/TeamCohen/secondstring
+  //See https://github.com/TeamCohen/secondstring
   runtime 'com.wcohen:com.wcohen.secondstring:0.1'
 
   // Something used by FRIL depends on xml-apis v1.4.x

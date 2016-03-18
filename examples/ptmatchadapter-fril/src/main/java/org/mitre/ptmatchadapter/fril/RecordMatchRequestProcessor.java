@@ -25,12 +25,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -88,6 +92,11 @@ public class RecordMatchRequestProcessor {
    * created.
    */
   private String workDir;
+
+  /**
+   * flag that indicates whether the record match job results should be deleted.
+   */
+  private boolean deleteJobResults = false;
 
   /** Path to the record match deduplication configuration template file. */
   private String deduplicationTemplate;
@@ -204,11 +213,28 @@ public class RecordMatchRequestProcessor {
           }
 
         } catch (BaseServerResponseException e) {
-          LOG.warn(String.format("Error response from server.  code: %d, %s",
-              e.getStatusCode(), e.getMessage()));
+          final String errMsg = String.format(
+              "Error response from server.  code: %d, %s",
+              e.getStatusCode(), e.getMessage());
+          LOG.warn(errMsg);
+          // Construct and return an error result
+          respBuilder = new RecordMatchResultsBuilder(bundle,
+              ResponseType.FATALERROR);
+          respBuilder.outcomeIssueDiagnostics(errMsg);
+          response = respBuilder.build();
+          getProducer().sendBody(getProducerEndpointUri(), response);
+          return;
         } catch (Exception e) {
-          LOG.warn(String.format("Unable to retrieve messages: %s", e.getMessage()),
-              e);
+          final String errMsg = String.format("Unable to retrieve messages: %s",
+              e.getMessage());
+          LOG.warn(errMsg, e);
+          // Construct and return an error result
+          respBuilder = new RecordMatchResultsBuilder(bundle,
+              ResponseType.FATALERROR);
+          respBuilder.outcomeIssueDiagnostics(errMsg);
+          response = respBuilder.build();
+          getProducer().sendBody(getProducerEndpointUri(), response);
+          return;
         } finally {
           if (loggingInterceptor != null) {
             fhirRestClient.unregisterInterceptor(loggingInterceptor);
@@ -272,6 +298,11 @@ public class RecordMatchRequestProcessor {
               bundle.getId(), ioe);
         }
       }
+
+      if (deleteJobResults) {
+        // Delete the Job Results folder and content
+        deleteFolder(jobDir);
+      }
     } else {
       final String errMsg = "Unsupported Bundle type: "
           + bundle.getType().toString();
@@ -297,6 +328,16 @@ public class RecordMatchRequestProcessor {
     }
   }
 
+  private void deleteFolder(File file) {
+    File[] contents = file.listFiles();
+    if (contents != null) {
+      for (File f : contents) {
+        deleteFolder(f);
+      }
+    }
+    file.delete();
+  }
+
   /**
    * Invokes the given search Url and writes the results to a file in the
    * specified job folder.
@@ -310,7 +351,9 @@ public class RecordMatchRequestProcessor {
   private void retrieveAndStoreData(String searchUrl, String serverBase,
       File jobDir, String fileName) throws IOException {
 
-    IQuery<Bundle> query = fhirRestClient.search().byUrl(searchUrl)
+    final String url = urlEncodeQueryParams(searchUrl);
+
+    IQuery<Bundle> query = fhirRestClient.search().byUrl(url)
         .returnBundle(Bundle.class);
 
     // Perform a search
@@ -330,6 +373,40 @@ public class RecordMatchRequestProcessor {
       List<Resource> nextResources = resultSplitter.splitBundle(nextResults);
       writeData(dataFile, nextResources, serverBase, false);
     }
+  }
+
+  private String urlEncodeQueryParams(String url) {
+    final StringBuilder sb = new StringBuilder((int) (url.length() * 1.2));
+
+    final int pos = url.indexOf('?');
+    if (pos > 0) {
+      // split url into base and query expression
+      final String queryExpr = url.substring(pos + 1);
+      LOG.trace("queryExpr {}", queryExpr);
+
+      final Pattern p = Pattern.compile(
+          "\\G([A-Za-z0-9-_]+)=([A-Za-z0-9-+:#^\\.,<>;%*\\(\\)_/\\[\\]\\{\\}\\\\ ]+)[&]?");
+      final Matcher m = p.matcher(queryExpr);
+      while (m.find()) {
+        LOG.trace("group 1: {}   group 2: {}", m.group(1), m.group(2));
+        if (sb.length() > 0) {
+          sb.append("&");
+        }
+        sb.append(m.group(1));
+        sb.append("=");
+        try {
+          // URL Encode the value of each query parameter
+          sb.append(URLEncoder.encode(m.group(2), "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+          // Ignore - We know UTF-8 is supported
+        }
+      }
+
+      LOG.trace("new query Expr: {}", sb.toString());
+
+      sb.insert(0, url.substring(0, pos + 1));
+    }
+    return sb.toString();
   }
 
   /**
@@ -455,7 +532,7 @@ public class RecordMatchRequestProcessor {
 
         if (resourceUrl == null) {
           LOG.warn(
-              "Reqeuired parameter, resourceUrl, is missing from record-match request!");
+              "Required parameter, resourceUrl, is missing from record-match request!");
         } else {
           searchUrl.append(resourceUrl);
           searchUrl.append("?");
@@ -535,7 +612,7 @@ public class RecordMatchRequestProcessor {
 
         if (resourceUrl == null) {
           LOG.warn(
-              "Reqeuired parameter, resourceUrl, is missing from record-match request!");
+              "Required parameter, resourceUrl, is missing from record-match request!");
         }
       }
     } else {
@@ -808,6 +885,21 @@ public class RecordMatchRequestProcessor {
    */
   public final void setFullUrlFormat(String fullUrlFormat) {
     this.fullUrlFormat = fullUrlFormat;
+  }
+
+  /**
+   * @return the deleteJobResults
+   */
+  public final boolean isDeleteJobResults() {
+    return deleteJobResults;
+  }
+
+  /**
+   * @param deleteJobResults
+   *          the deleteJobResults to set
+   */
+  public final void setDeleteJobResults(boolean deleteJobResults) {
+    this.deleteJobResults = deleteJobResults;
   }
 
 }

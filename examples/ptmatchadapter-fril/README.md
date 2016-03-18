@@ -39,3 +39,10 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+
+## TO DO (Wish List)
+1. Use HTTP POST when performing the FHIR search to retrieve the data that 
+is to be used in the record matching operation.  When using GET, the search
+parameters are likely stored in the FHIR server's access log, which may be
+a privacy concern.

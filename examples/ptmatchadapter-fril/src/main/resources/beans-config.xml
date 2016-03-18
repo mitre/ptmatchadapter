@@ -57,6 +57,7 @@
     <property name="fhirRestClient" ref="fhirRestClient2" />
     <property name="workDir" value="${ptmatchadapter.workDir}" />
     <property name="deduplicationTemplate" value="${ptmatchadapter.deduplicationTemplate}" />
+    <property name="deleteJobResults" value="${ptmatchadapter.deleteJobResults}" />
   </bean>
 
   <bean id="acknowledgmentBuilder" 

@@ -17,6 +17,7 @@
 
 package org.mitre.ptmatchadapter;
 
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -67,7 +68,7 @@ public class MessageRetriever {
       // Prepare search query for messages
       final StringBuilder sb = new StringBuilder(100);
       sb.append("Bundle?message.destination-uri=");
-      sb.append(getDestinationUri());
+      sb.append(URLEncoder.encode(getDestinationUri(), "UTF-8"));
       // the lastUpdated() convenience method uses an operator (from DSTU1) not
       // supported by the Intervention Engine FHIR Server so use 'gt' operator manually
       sb.append("&_lastUpdated=gt");
@@ -103,6 +104,7 @@ public class MessageRetriever {
     return results;
   }
 
+  
   /**
    * @return the desinationUri
    */

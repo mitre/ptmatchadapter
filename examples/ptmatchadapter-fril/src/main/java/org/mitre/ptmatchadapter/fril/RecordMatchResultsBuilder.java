@@ -85,77 +85,81 @@ public class RecordMatchResultsBuilder extends BasicRecordMatchResultsBuilder {
    *           or could not be processed
    */
   private void addLinkedRecordEntries(Bundle bundle) throws IOException {
-    final Reader in = new FileReader(duplicatesFile);
-    try {
-      final Iterable<CSVRecord> records = CSVFormat.DEFAULT.parse(in);
+    if (duplicatesFile != null) {
+      final Reader in = new FileReader(duplicatesFile);
+      try {
+        final Iterable<CSVRecord> records = CSVFormat.DEFAULT.parse(in);
 
-      String refRecordUrl = null;
-      String curDupId = "0";
+        String refRecordUrl = null;
+        String curDupId = "0";
 
-      // see https://www.hl7.org/fhir/valueset-patient-mpi-match.html
-      final CodeType certain = new CodeType("certain");
-      final CodeType probable = new CodeType("probable");
-      final CodeType possible = new CodeType("possible");
-      final CodeType certainlyNot = new CodeType("certainly-not");
+        // see https://www.hl7.org/fhir/valueset-patient-mpi-match.html
+        final CodeType certain = new CodeType("certain");
+        final CodeType probable = new CodeType("probable");
+        final CodeType possible = new CodeType("possible");
+        final CodeType certainlyNot = new CodeType("certainly-not");
 
-      for (CSVRecord record : records) {
-        String duplicateId = record.get(DUPLICATE_ID_COL);
-        String scoreStr = record.get(SCORE_COL);
-        String fullUrl = record.get(FULL_URL_COL);
+        for (CSVRecord record : records) {
+          String duplicateId = record.get(DUPLICATE_ID_COL);
+          String scoreStr = record.get(SCORE_COL);
+          String fullUrl = record.get(FULL_URL_COL);
 
-        if (curDupId.equals(duplicateId)) {
-          if (refRecordUrl == null) {
-            LOG.warn("Unexpected condition, curDupId {}, duplicateId {}", curDupId,
-                duplicateId);
-            continue;
-          }
+          if (curDupId.equals(duplicateId)) {
+            if (refRecordUrl == null) {
+              LOG.warn("Unexpected condition, curDupId {}, duplicateId {}",
+                  curDupId,
+                  duplicateId);
+              continue;
+            }
 
-          BundleEntryComponent entry = new BundleEntryComponent();
-          entry.setFullUrl(refRecordUrl);
+            BundleEntryComponent entry = new BundleEntryComponent();
+            entry.setFullUrl(refRecordUrl);
 
-          BundleEntrySearchComponent search = new BundleEntrySearchComponent();
-          // fril returns results 0 - 100; normalize to 0 - 1;
-          double score = Double.valueOf(scoreStr).doubleValue() / 100.;
-          search.setScoreElement(new DecimalType(score));
+            BundleEntrySearchComponent search = new BundleEntrySearchComponent();
+            // fril returns results 0 - 100; normalize to 0 - 1;
+            double score = Double.valueOf(scoreStr).doubleValue() / 100.;
+            search.setScoreElement(new DecimalType(score));
 
-          // TODO Add Extension that maps score value to a term (e.g., probable)
-          Extension searchExt = new Extension(new UriType(
-              "http://hl7.org/fhir/StructureDefinition/patient-mpi-match"));
-          if (score > 0.85) {
-            searchExt.setValue(certain);
-          } else if (score > 0.65) {
-            searchExt.setValue(probable);
-          } else if (score > .45) {
-            searchExt.setValue(possible);
+            // TODO Add Extension that maps score value to a term (e.g.,
+            // probable)
+            Extension searchExt = new Extension(new UriType(
+                "http://hl7.org/fhir/StructureDefinition/patient-mpi-match"));
+            if (score > 0.85) {
+              searchExt.setValue(certain);
+            } else if (score > 0.65) {
+              searchExt.setValue(probable);
+            } else if (score > .45) {
+              searchExt.setValue(possible);
+            } else {
+              searchExt.setValue(certainlyNot);
+            }
+            search.addExtension(searchExt);
+            entry.setSearch(search);
+
+            // Add information about the resource type
+
+            BundleLinkComponent link = new BundleLinkComponent(
+                new StringType("type"),
+                new UriType("http://hl7.org/fhir/Patient"));
+            entry.addLink(link);
+
+            // Add the link to the duplicate record
+            link = new BundleLinkComponent(
+                new StringType("related"), new UriType(fullUrl));
+            entry.addLink(link);
+
+            bundle.addEntry(entry);
           } else {
-            searchExt.setValue(certainlyNot);
+            // new set of duplicates
+            curDupId = duplicateId;
+            refRecordUrl = fullUrl;
           }
-          search.addExtension(searchExt);
-          entry.setSearch(search);
-
-          // Add information about the resource type
-
-          BundleLinkComponent link = new BundleLinkComponent(new StringType("type"),
-              new UriType("http://hl7.org/fhir/Patient"));
-          entry.addLink(link);
-
-          // Add the link to the duplicate record
-          link = new BundleLinkComponent(
-              new StringType("related"), new UriType(fullUrl));
-          entry.addLink(link);
-
-          bundle.addEntry(entry);
-        } else {
-          // new set of duplicates
-          curDupId = duplicateId;
-          refRecordUrl = fullUrl;
         }
+      } finally {
+        in.close();
       }
-    } finally {
-      in.close();
     }
   }
-
 
   public RecordMatchResultsBuilder duplicates(File file) {
     duplicatesFile = file;

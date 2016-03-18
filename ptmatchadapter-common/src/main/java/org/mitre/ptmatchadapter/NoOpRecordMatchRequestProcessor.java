@@ -17,6 +17,8 @@
 
 package org.mitre.ptmatchadapter;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.List;
 
 import org.apache.camel.ProducerTemplate;
@@ -205,7 +207,11 @@ public class NoOpRecordMatchRequestProcessor {
               }
               queryExpr.append(name);
               queryExpr.append("=");
-              queryExpr.append(value);
+              try {
+                queryExpr.append(URLEncoder.encode(value, "UTF-8"));
+              } catch (UnsupportedEncodingException e) {
+                // Ignore - We can depend on UTF-8 support
+              }
             }
           } catch (NullPointerException e) {
             LOG.error("Null Value for search expression parameter, {}", name);
