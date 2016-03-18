@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.mitre.ptmatchadapter;
 
-import java.util.Date;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.hl7.fhir.instance.model.Bundle;
 import org.slf4j.Logger;
@@ -33,54 +35,64 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
  *
  */
 public class MessageRetriever {
-  private static final Logger LOG    = LoggerFactory.getLogger(MessageRetriever.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MessageRetriever.class);
 
-  private IGenericClient    client;
+  private IGenericClient client;
 
   private String destinationUri;
-  
+
   /** number of milliseconds back in time for which to ask for messages. */
-  private int                 period = 30000;
+  private long period = 30000;
 
   private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-  
+
   public Bundle doSearch() {
     Bundle results = null;
 
-    LoggingInterceptor loggingInterceptor = null; 
+    LoggingInterceptor loggingInterceptor = null;
     if (LOG.isDebugEnabled()) {
-      // Note: Logging Intercepter output is at INFO level and based on ca.uhn... tree
+      // Note: Logging Intercepter output is at INFO level and based on
+      // ca.uhn... tree
       loggingInterceptor = new LoggingInterceptor(true);
       client.registerInterceptor(loggingInterceptor);
     }
 
-    final Date d = new Date(System.currentTimeMillis() - period);
+    final Date d;
+    if (period <= 0) {
+      d = new Date(0); // Use Java Epoch
+    } else {
+      d = new Date(System.currentTimeMillis() - period);
+    }
 
     try {
       // Prepare search query for messages
       final StringBuilder sb = new StringBuilder(100);
       sb.append("Bundle?message.destination-uri=");
-      sb.append(getDestinationUri());
-      // the lastUpdated() convenience method uses an operator not suppored by 
-      // the Intervention Engine FHIR Server so use 'gt' operator manually
-//      sb.append("&_lastUpdated=gt");
- //     sb.append(df.format(d));
+      sb.append(URLEncoder.encode(getDestinationUri(), "UTF-8"));
+      // the lastUpdated() convenience method uses an operator (from DSTU1) not
+      // supported by the Intervention Engine FHIR Server so use 'gt' operator manually
+      sb.append("&_lastUpdated=gt");
+      sb.append(df.format(d));
 
       final IQuery<Bundle> query = client.search()
-      .byUrl(sb.toString())
-      //.forResource(Bundle.class)
-        //  .encodedJson() // results in _format query parameter, which is not supported by Intervention Engine FHIR Server
-         //.lastUpdated(new DateRangeParam(d, null))  // 2/10/16 - IE FHIR Server doesn't support date comparison operator
-//          .where((new StringClientParam(Bundle.SP_TYPE)).matches().value(BundleTypeEnum.MESSAGE.toString()))
-//          .and(Patient.CAREPROVIDER.hasChainedProperty(Organization.NAME.matches().value(destinationUri)))
-//          .and(Patient.CAREPROVIDER.hasChainedProperty(Organization.NAME.matches().value("Health")))
+          .byUrl(sb.toString())
+          // .forResource(Bundle.class)
+          // .encodedJson() // results in _format query parameter, which is not
+          // supported by Intervention Engine FHIR Server
+          // .lastUpdated(new DateRangeParam(d, null)) // 2/10/16 - IE FHIR
+          // Server doesn't support date comparison operator
+          // .where((new
+          // StringClientParam(Bundle.SP_TYPE)).matches().value(BundleTypeEnum.MESSAGE.toString()))
+          // .and(Patient.CAREPROVIDER.hasChainedProperty(Organization.NAME.matches().value(destinationUri)))
+          // .and(Patient.CAREPROVIDER.hasChainedProperty(Organization.NAME.matches().value("Health")))
           .returnBundle(Bundle.class);
 
       // Perform a search
       results = query.execute();
 
     } catch (BaseServerResponseException e) {
-      LOG.warn(String.format("Error response from server.  code: %d, %s", e.getStatusCode(), e.getMessage()));
+      LOG.warn(String.format("Error response from server.  code: %d, %s",
+          e.getStatusCode(), e.getMessage()));
     } catch (Exception e) {
       LOG.warn(String.format("Unable to retrieve messages: %s", e.getMessage()), e);
     } finally {
@@ -92,7 +104,7 @@ public class MessageRetriever {
     return results;
   }
 
-
+  
   /**
    * @return the desinationUri
    */
@@ -101,7 +113,8 @@ public class MessageRetriever {
   }
 
   /**
-   * @param desinationUri the desinationUri to set
+   * @param desinationUri
+   *          the desinationUri to set
    */
   public final void setDestinationUri(String uri) {
     this.destinationUri = uri;
@@ -115,9 +128,26 @@ public class MessageRetriever {
   }
 
   /**
-   * @param client the client to set
+   * @param client
+   *          the client to set
    */
   public final void setClient(IGenericClient client) {
     this.client = client;
+  }
+
+  /**
+   * 
+   * @return the period
+   */
+  public final long getPeriod() {
+    return period;
+  }
+
+  /**
+   * @param period
+   *          number of milliseconds back in time for which to ask for messages
+   */
+  public final void setPeriod(long period) {
+    this.period = period;
   }
 }

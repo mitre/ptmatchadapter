@@ -101,7 +101,7 @@ public class SimplePatientCsvFormatTest {
     assertNotNull(ptr);
     obj2 = ptr.getValue();
     
-    String str = fmt.toCSV(patient);
+    String str = fmt.toCsv(patient);
     LOG.info("CSV: {}", str);
     assertTrue(str.length() > 0);
     // Ensure the literal, null doesn't appear

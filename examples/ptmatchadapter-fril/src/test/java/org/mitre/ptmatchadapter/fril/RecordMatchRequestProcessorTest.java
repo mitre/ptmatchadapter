@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.mitre.ptmatchadapter;
+package org.mitre.ptmatchadapter.fril;
 
 import static org.junit.Assert.*;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.FileSystems;
@@ -27,6 +28,7 @@ import java.nio.file.Path;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mitre.ptmatchadapter.fril.RecordMatchRequestProcessor;
 
 /**
  * @author Michael Los, mel@mitre.org
@@ -44,12 +46,12 @@ public class RecordMatchRequestProcessorTest {
 
   /**
    * Test method for
-   * {@link org.mitre.ptmatchadapter.RecordMatchRequestProcessor#loadTemplate(java.lang.String)}
+   * {@link org.mitre.ptmatchadapter.fril.RecordMatchRequestProcessor#loadTemplate(java.lang.String)}
    * .
    */
   @Test
-  public void testLoadTemplate() {
-    RecordMatchRequestProcessor proc = new RecordMatchRequestProcessor();
+  public void testLoadTemplate() throws FileNotFoundException{
+    final RecordMatchRequestProcessor proc = new RecordMatchRequestProcessor();
 
     assertNotNull(proc.loadTemplate(
         "/templates/fril-dedupe-allFieldsNearlyEqualWeight-accept60.xml"));
@@ -57,20 +59,33 @@ public class RecordMatchRequestProcessorTest {
         "templates/fril-dedupe-allFieldsNearlyEqualWeight-accept60.xml"));
   }
 
+  @Test(expected = FileNotFoundException.class) 
+  public void testLoadTemplateBadPath() throws FileNotFoundException {
+    final RecordMatchRequestProcessor proc = new RecordMatchRequestProcessor();
+
+    assertNotNull(proc.loadTemplate("path/to/nowhere.xml"));
+    fail("File Not Found Exception expected");
+  }
+  
   @Test
   public void testPrepareConfigFile() {
     try {
       final RecordMatchRequestProcessor proc = new RecordMatchRequestProcessor();
       proc.setDeduplicationTemplate(
           "templates/fril-dedupe-allFieldsNearlyEqualWeight-accept60.xml");
-      File jobDir = proc.newRunDir(workDir.toFile().getAbsolutePath());
+      final File jobDir = proc.newRunDir(workDir.toFile().getAbsolutePath());
 
-      File configFile = proc.prepareMatchingRuleConfiguration(true, jobDir);
+      final File configFile = proc.prepareMatchingRuleConfiguration(true, jobDir);
       assertNotNull(configFile);
       assertTrue(configFile.exists());
       assertEquals(jobDir.getAbsolutePath(),
           configFile.getParentFile().getAbsolutePath());
-    } catch (IOException e) {
+      
+      // verify we can read config file to read items of interest
+      final File dupsFile = proc.getDuplicatesFile(configFile);
+      assertNotNull(dupsFile);
+      assertTrue(dupsFile.getAbsolutePath().endsWith("duplicates.csv"));
+    } catch (Exception e) {
       fail(e.getMessage());
     }
   }

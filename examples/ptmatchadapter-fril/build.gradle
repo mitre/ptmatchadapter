@@ -1,6 +1,6 @@
 buildscript {
   ext {
-    springBootVersion = '1.3.2.RELEASE'
+    springBootVersion = '1.3.3.RELEASE'
   }
   repositories {
     mavenCentral()
@@ -24,6 +24,8 @@ dependencies {
   compile "org.apache.camel:camel-spring-boot:${camelVersion}"
   compile "org.apache.camel:camel-http4:${camelVersion}"
   compile "org.apache.camel:camel-stream:${camelVersion}"
+
+  compile 'org.apache.commons:commons-csv:1.2'
 
   compile "ca.uhn.hapi.fhir:hapi-fhir-base:${hapiFhirVersion}"
   compile "ca.uhn.hapi.fhir:hapi-fhir-structures-hl7org-dstu2:${hapiFhirVersion}"
@@ -56,7 +58,7 @@ dependencies {
   runtime 'org.swinglabs:swing-layout:1.0.3'
   runtime 'org.swinglabs:swingx:1.6.1'
   
-  //https://github.com/TeamCohen/secondstring
+  //See https://github.com/TeamCohen/secondstring
   runtime 'com.wcohen:com.wcohen.secondstring:0.1'
 
   // Something used by FRIL depends on xml-apis v1.4.x

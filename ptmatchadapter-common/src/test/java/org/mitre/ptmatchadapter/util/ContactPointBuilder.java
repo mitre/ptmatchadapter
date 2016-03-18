@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.mitre.ptmatchadapter.util;
 
 import org.hl7.fhir.instance.model.ContactPoint;
 import org.hl7.fhir.instance.model.ContactPoint.ContactPointSystem;
-import org.hl7.fhir.instance.model.ContactPoint.ContactPointSystemEnumFactory;
 import org.hl7.fhir.instance.model.ContactPoint.ContactPointUse;
 import org.hl7.fhir.instance.model.Period;
 
@@ -27,12 +27,12 @@ import org.hl7.fhir.instance.model.Period;
  *
  */
 public class ContactPointBuilder {
-  private ContactPointSystem system = null;;
-  private String value = null;;
-  private ContactPointUse use = null;;
-  private int rank = 0; 
+  private ContactPointSystem system = null;
+  private String value = null;
+  private ContactPointUse use = null;
+  private int rank = 0;
   private Period period = null;
-  
+
   public ContactPointBuilder() {
   }
 
@@ -54,7 +54,6 @@ public class ContactPointBuilder {
     return this;
   }
 
-  
   public ContactPointBuilder pager(String value) {
     system = ContactPointSystem.PAGER;
     this.value = value;
@@ -98,18 +97,18 @@ public class ContactPointBuilder {
     this.period = period;
     return this;
   }
-  
+
   public ContactPoint build() {
     ContactPoint contact = new ContactPoint();
 
     if (system != null) {
-    contact.setSystem(system);
+      contact.setSystem(system);
     }
     if (value != null) {
-    contact.setValue(value);
+      contact.setValue(value);
     }
     if (use != null) {
-    contact.setUse(use);
+      contact.setUse(use);
     }
     if (rank > 0) {
       contact.setRank(rank);

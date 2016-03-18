@@ -37,6 +37,7 @@
   <bean id="msgRetriever" class="org.mitre.ptmatchadapter.MessageRetriever">
     <property name="client" ref="fhirRestClient" />
     <property name="destinationUri" value="${ptmatchadapter.uri}" />
+    <property name="period" value="${msgRetriever.period}" />
   </bean>
 
   <bean id="duplicateMessageFilter" class="org.mitre.ptmatchadapter.DuplicateMessageFilter">
@@ -49,15 +50,18 @@
   <bean id="searchResultSplitter" class="org.mitre.ptmatchadapter.SearchResultSplitter" />
 
 
-  <bean id="requestHandler" class="org.mitre.ptmatchadapter.RecordMatchRequestProcessor">
+  <bean id="requestHandler" 
+      class="org.mitre.ptmatchadapter.fril.RecordMatchRequestProcessor">
     <property name="producerEndpointUri" value="seda:msgOutbox" />
     <property name="producer" ref="producerTemplate" />
     <property name="fhirRestClient" ref="fhirRestClient2" />
     <property name="workDir" value="${ptmatchadapter.workDir}" />
     <property name="deduplicationTemplate" value="${ptmatchadapter.deduplicationTemplate}" />
+    <property name="deleteJobResults" value="${ptmatchadapter.deleteJobResults}" />
   </bean>
 
-  <bean id="acknowledgmentBuilder" class="org.mitre.ptmatchadapter.recordmatch.AcknowledgmentBuilder">
+  <bean id="acknowledgmentBuilder" 
+      class="org.mitre.ptmatchadapter.recordmatch.AcknowledgmentBuilder">
     <property name="sourceName" value="${ptmatchadapter.name}" />
     <property name="sourceEndpointUri" value="${ptmatchadapter.uri}" />
   </bean>

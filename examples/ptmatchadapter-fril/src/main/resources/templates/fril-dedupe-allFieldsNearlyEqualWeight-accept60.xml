@@ -8,6 +8,10 @@
             <param name="input-file" value="{{jobDir}}/master-data.csv"/>
         </params>
         <row-model>
+            <column column="fullUrl"
+                converter="cdc.datamodel.converters.DummyConverter" name="fullUrl">
+                <empty-values/>
+            </column>
             <column column="id"
                 converter="cdc.datamodel.converters.DummyConverter" name="id">
                 <empty-values/>
@@ -91,10 +95,6 @@
             </column>
             <column column="telecom_email_home"
                 converter="cdc.datamodel.converters.DummyConverter" name="telecom_email_home">
-                <empty-values/>
-            </column>
-            <column column="fullUrl"
-                converter="cdc.datamodel.converters.DummyConverter" name="fullUrl">
                 <empty-values/>
             </column>
         </row-model>
