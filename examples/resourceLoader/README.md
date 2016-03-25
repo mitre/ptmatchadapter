@@ -4,11 +4,14 @@ Resource Loader
 This example application loads one or more FHIR resources from files in a
 specified directory and posts each to a specified FHIR server.  If the input FHIR resource is a Bundle, each resource inside the Bundle is posted to the FHIR server individually.
 
+Currently, only deduplication mode support is implemented.
+
 This application is UNFINISHED.
+
 
 ## Configuration
 
-application.properties
+src/main/resources/application.properties
  
 ## Running the Application
 

@@ -76,4 +76,17 @@
     <property name="format" value="json" />
     <property name="prettyPrint" value="true" />
   </bean>
+  
+  <bean id="adapterConfiguration" class="org.mitre.ptmatchadapter.gui.AdapterConfiguration">
+  </bean>
+  
+  <bean id="webResource" class="org.eclipse.jetty.util.resource.Resource"
+    factory-method="newClassPathResource" >
+    <constructor-arg value="/www" />
+  </bean>
+
+  <bean id="staticPageHandler" class="org.eclipse.jetty.server.handler.ResourceHandler">
+    <property name="baseResource" ref="webResource"/>    
+    <property name="directoriesListed" value="true" />
+  </bean>
 </beans>

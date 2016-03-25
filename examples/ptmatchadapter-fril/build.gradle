@@ -23,7 +23,11 @@ dependencies {
   compile('org.springframework.boot:spring-boot-starter')
   compile "org.apache.camel:camel-spring-boot:${camelVersion}"
   compile "org.apache.camel:camel-http4:${camelVersion}"
+  compile "org.apache.camel:camel-jetty:${camelVersion}"
   compile "org.apache.camel:camel-stream:${camelVersion}"
+  // Camel-swagger-java has bugs affecting use w/ Spring Boot in 2.16.2
+  // Try again in next Cample update
+  //compile "org.apache.camel:camel-swagger-java:${camelVersion}"
 
   compile 'org.apache.commons:commons-csv:1.2'
 

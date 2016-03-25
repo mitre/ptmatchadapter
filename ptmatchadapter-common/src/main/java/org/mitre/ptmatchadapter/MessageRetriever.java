@@ -41,7 +41,7 @@ public class MessageRetriever {
 
   private String destinationUri;
 
-  /** number of milliseconds back in time for which to ask for messages. */
+  /** number of milliseconds back in time for which to ask FHIR Server for messages. */
   private long period = 30000;
 
   private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
