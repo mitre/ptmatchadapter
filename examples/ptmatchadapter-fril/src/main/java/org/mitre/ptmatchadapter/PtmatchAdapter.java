@@ -24,6 +24,7 @@ import java.util.TimerTask;
 
 import org.apache.camel.model.rest.RestBindingMode;
 import org.apache.camel.spring.boot.FatJarRouter;
+import org.mitre.ptmatchadapter.service.model.ServerAuthorization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.ImportResource;
@@ -31,8 +32,11 @@ import org.springframework.context.annotation.ImportResource;
 import com.centerkey.utils.BareBonesBrowserLaunch;
 
 
+
+
 @SpringBootApplication
 @ImportResource("beans-config.xml")
+// EnableHawtio
 public class PtmatchAdapter extends FatJarRouter {
   public static final Logger LOG = LoggerFactory.getLogger(PtmatchAdapter.class);
 
@@ -42,12 +46,17 @@ public class PtmatchAdapter extends FatJarRouter {
 
   // value will be retrieved from application.properties
   @Value("${ptmatchadapter.web.ipaddress}")
-  private String webServerIpAddr = "localhost";
+  private String webServerIpAddr = "0.0.0.0";
 
+  @Value("${ptmatchadapter.web.enableCORS}")
+  private boolean isCorsEnabled = false;
+  
   @Override
   public void configure() {
-    restConfiguration().component("jetty")
-      .host(webServerIpAddr).port(webServerPort);
+    restConfiguration().component("jetty").bindingMode(RestBindingMode.json)
+      .host(webServerIpAddr).port(webServerPort); //.enableCORS(true) 
+      //.corsHeaderProperty("Access-Control-Max-Age", "43200")
+      //.corsHeaderProperty("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     // Bug in Camel 2.16.2 (fixed since then, but not released) results in 
     // exception at startup when multiple rest() services are specified in a 
     // Spring Boot application.
@@ -60,8 +69,8 @@ public class PtmatchAdapter extends FatJarRouter {
 //      //and enable CORS
 //      .apiProperty("cors", "true");
     
-    rest("/mgr").description("Adapter Management rest service")
-      .consumes("application/json").produces("application/json")
+    rest("/mgr").description("Record Matching System Adapter Management rest service")
+//      .consumes("application/json").produces("application/json")
 
 //    .get("/{id}").description("Find user by id").outType(User.class)
 //        .to("bean:userService?method=getUser(${header.id})")
@@ -71,18 +80,48 @@ public class PtmatchAdapter extends FatJarRouter {
 //
 //    .get("/findAll").description("Find all users").outTypeList(User.class)
 
+      .get("/serverAuthorization").description("Retrieve list of server authorizations")
+        .enableCORS(true)
+        .outType(ServerAuthorization.class)
+        .to("bean:serverAuthorizationService?method=getServerAuthorizations")
 
-      .get("/hello").description("basic greeting").outType(String.class).produces("text/plain")
+      .get("/serverAuthorization/{id}").description("Find server authorization by id")
+        .enableCORS(true)
+        .outType(ServerAuthorization.class)
+        .to("bean:serverAuthorizationService?method=getServerAuthorization(${header.id})")
+
+      .post("/serverAuthForm")
+        .bindingMode(RestBindingMode.off)
+        .description("Store User Authorization for ptmatch adapter to access a server")
+        .type(String.class)
+        .to("bean:serverAuthorizationService?method=createFromForm")
+
+      .post("/serverAuthorization")
+        .description("Store User Authorization for ptmatch adapter to access a server")
+        .enableCORS(true)
+        .type(ServerAuthorization.class)
+        .outType(ServerAuthorization.class)
+        .to("bean:serverAuthorizationService")
+
+      .options("/serverAuthorization")
+        .to("bean:serverAuthorizationService?method=handleOptions")
+        
+
+        .get("/hello").description("basic greeting").produces("text/plain")
         .to("direct:hello")
       .get("/say/hello").to("direct:hello1").produces("text/plain");
     
     //rest("/hello").get().to("direct:hello");
     //rest("/say/hello1").get().to("direct:hello1");
     
-    from("direct:hello").transform().simple("Hello World!");
+    from("direct:authResp").routeId("Authorization Response Route").transform().simple("Yippee!");
+
+    from("direct:hello").routeId("Hello World Route").transform().simple("Hello World!");
   }
 
+  
   public static void main(String... args) {
+    //System.setProperty(AuthenticationFilter.HAWTIO_AUTHENTICATION_ENABLED, "false");
 
     // Create a one-time task that will open a url to config page in a browser
     // after the application has been given a couple of seconds to start up.
@@ -91,14 +130,17 @@ public class PtmatchAdapter extends FatJarRouter {
       public void run() {
         LOG.info("============= Open URL in Browser");
         // Open a Browser window for the user
-        BareBonesBrowserLaunch.openURL("http://localhost:8082/mgr/hello");
+        BareBonesBrowserLaunch.openURL("http://localhost:8082/index.html");
         LOG.info("============= After Open URL in Browser");
       }
-    }, 8000);
+    }, 9000);
 
+    
     LOG.info("============= Call Fat Jar Router Main");
     // Call Fat Jar Router main last because it never returns
     FatJarRouter.main(args);
     LOG.info("============= Returned from Fat Jar Router Main");
   }
+  
+
 }

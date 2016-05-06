@@ -7,14 +7,26 @@
   <!-- See http://nigap.blogspot.fr/2014/12/camel-how-to-expose-static-resources-in.html -->
   <!-- This route just initialized the static handler on the specified port number-->
   <route>
-    <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}?handlers=#staticPageHandler" />
+    <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}?handlers=#staticPageHandler&amp;enableJmx=true" />
     <log message="Serving static content: ${header.HTTP_URI}" loggingLevel="INFO" />
   </route>
 
   <!-- Endpoint configuration user interface -->
   <route>
-    <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}/ptmatchadapter/config"/>
+    <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}/ptmatchadapter/config&amp;enableJmx=true"/>
     <to uri="bean:adapterConfiguration"/>
+  </route>
+
+<!-- 
+  <route>
+    <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}/mgr/serverAuthForm"/>
+    <to uri="bean:serverAuthorizationService?method=createFromForm"/>
+  </route>
+  -->
+  
+  <route>
+    <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}{{ptmatchadapter.clientAuthRedirectPath}}"/>
+    <to uri="bean:serverAuthorizationService?method=processAuthorizationCode"/>
   </route>
  
   <route>
