@@ -20,12 +20,15 @@ package org.mitre.ptmatchadapter;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 import org.hl7.fhir.instance.model.Bundle;
+import org.mitre.ptmatchadapter.model.ServerAuthorization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.rest.client.IGenericClient;
+import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
@@ -39,6 +42,7 @@ public class MessageRetriever {
 
   private IGenericClient client;
 
+  /** destination uri being sought in the record match request. */
   private String destinationUri;
 
   /** number of milliseconds back in time for which to ask FHIR Server for messages. */
@@ -46,8 +50,28 @@ public class MessageRetriever {
 
   private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
+  private List<ServerAuthorization> serverAuthorizations;
+
+
+  /**
+   * Initiates a search for record match request messages from the
+   * server configured at destinationUri.
+   * 
+   * @return
+   */
   public Bundle doSearch() {
     Bundle results = null;
+
+    final ServerAuthorization serverAuthorization =
+        findServerAuthorization(client.getServerBase());
+
+    BearerTokenAuthInterceptor authInterceptor = null;
+    if (serverAuthorization != null) {
+      // register authorization interceptor with the client
+      LOG.info("assigning bearing token interceptor, {}", serverAuthorization.getAccessToken() );
+      authInterceptor = new BearerTokenAuthInterceptor(serverAuthorization.getAccessToken());
+      client.registerInterceptor(authInterceptor);
+    }
 
     LoggingInterceptor loggingInterceptor = null;
     if (LOG.isDebugEnabled()) {
@@ -96,6 +120,10 @@ public class MessageRetriever {
     } catch (Exception e) {
       LOG.warn(String.format("Unable to retrieve messages: %s", e.getMessage()), e);
     } finally {
+      if (authInterceptor != null) {
+        // unregister authorization interceptor with the client
+        client.unregisterInterceptor(authInterceptor);
+      }
       if (loggingInterceptor != null) {
         client.unregisterInterceptor(loggingInterceptor);
       }
@@ -104,6 +132,22 @@ public class MessageRetriever {
     return results;
   }
 
+  private ServerAuthorization findServerAuthorization(String serverBase) {
+    if (serverAuthorizations != null) {
+      for (ServerAuthorization sa : serverAuthorizations) {
+        LOG.info("findServerAuth serverUrl: {}  {}", sa.getServerUrl(), serverBase);
+        try {
+          if (sa.getServerUrl().equals(serverBase)) {
+            return sa;
+          }
+        } catch (NullPointerException e) {
+          // should never happen
+          LOG.warn("NULL Server URL found for server authorization: {}", sa.getTitle());
+        }
+      }
+    }
+    return null;
+  }
   
   /**
    * @return the desinationUri
@@ -149,5 +193,22 @@ public class MessageRetriever {
    */
   public final void setPeriod(long period) {
     this.period = period;
+  }
+
+
+  /**
+   * @return the serverAuthorizations
+   */
+  public final List<ServerAuthorization> getServerAuthorizations() {
+    return serverAuthorizations;
+  }
+
+
+  /**
+   * @param serverAuthorizations the serverAuthorizations to set
+   */
+  public final void setServerAuthorizations(
+      List<ServerAuthorization> serverAuthorizations) {
+    this.serverAuthorizations = serverAuthorizations;
   }
 }

@@ -24,7 +24,7 @@ import java.util.TimerTask;
 
 import org.apache.camel.model.rest.RestBindingMode;
 import org.apache.camel.spring.boot.FatJarRouter;
-import org.mitre.ptmatchadapter.service.model.ServerAuthorization;
+import org.mitre.ptmatchadapter.model.ServerAuthorization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.ImportResource;

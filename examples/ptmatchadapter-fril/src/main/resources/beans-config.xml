@@ -35,10 +35,16 @@
     <constructor-arg value="${src.fhir.server.base}" />
   </bean>
 
+  <!-- Globally accessible list of Server Authorizations -->
+  <!-- TODO Persist list of server authorizations. -->
+  <util:list id="serverAuthorizations" list-class="java.util.ArrayList"/>
+
+
   <bean id="msgRetriever" class="org.mitre.ptmatchadapter.MessageRetriever">
     <property name="client" ref="fhirRestClient" />
     <property name="destinationUri" value="${ptmatchadapter.uri}" />
     <property name="period" value="${msgRetriever.period}" />
+    <property name="serverAuthorizations" ref="serverAuthorizations"/>
   </bean>
 
   <bean id="duplicateMessageFilter" class="org.mitre.ptmatchadapter.DuplicateMessageFilter">
@@ -59,6 +65,7 @@
     <property name="workDir" value="${ptmatchadapter.workDir}" />
     <property name="deduplicationTemplate" value="${ptmatchadapter.deduplicationTemplate}" />
     <property name="deleteJobResults" value="${ptmatchadapter.deleteJobResults}" />
+    <property name="serverAuthorizations" ref="serverAuthorizations"/>
   </bean>
 
   <bean id="acknowledgmentBuilder" 
@@ -72,7 +79,7 @@
   </bean>
 
 
-  <bean id="  resourceSerializer" class="org.mitre.ptmatchadapter.util.ResourceSerializer">
+  <bean id="resourceSerializer" class="org.mitre.ptmatchadapter.util.ResourceSerializer">
     <constructor-arg name="fhirContext" ref="fhirContext" />
     <property name="format" value="json" />
     <property name="prettyPrint" value="true" />
@@ -97,8 +104,6 @@
     <property name="welcomeFiles" ref="welcomeFiles" />
   </bean>
   
-  <util:list id="serverAuthorizations" list-class="java.util.ArrayList"/>
-
   <util:map id="oauthSessionStateMap" map-class="java.util.HashMap"/>
    
   <bean id="serverAuthorizationService" 

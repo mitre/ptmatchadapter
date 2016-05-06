@@ -37,8 +37,8 @@ import org.apache.camel.OutHeaders;
 import org.apache.camel.Processor;
 import org.apache.camel.ProducerTemplate;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.mitre.ptmatchadapter.model.ServerAuthorization;
 import org.mitre.ptmatchadapter.service.model.AuthorizationRequestInfo;
-import org.mitre.ptmatchadapter.service.model.ServerAuthorization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -275,14 +275,6 @@ public class ServerAuthorizationService {
       @Headers Map<String, Object> reqHdrs,
       @OutHeaders Map<String, Object> respHdrs) {
 
-    //  "application/x-www-form-urlencoded; charset=UTF-8"
-
-    // Write out message request headers
-    if (LOG.isDebugEnabled()) {
-      for (String key : reqHdrs.keySet()) {
-        LOG.debug("fromForm req key: {}", key);
-      }
-    }
 
     final String serverUrl = (String) reqHdrs.get("serverUrl");
     if (serverUrl != null && !serverUrl.isEmpty()) {
@@ -291,7 +283,7 @@ public class ServerAuthorizationService {
       serverAuth.setTitle((String) reqHdrs.get("title"));
       serverAuth.setServerUrl(serverUrl);
 
-      
+      // look for evidence of CORS header (header is case-insensitive
       String origin = (String) reqHdrs.get("Origin");
       if (origin == null) {
         origin = (String) reqHdrs.get("origin");

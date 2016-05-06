@@ -57,6 +57,7 @@ import org.mitre.ptmatchadapter.SearchResultSplitter;
 import org.mitre.ptmatchadapter.format.SimplePatientCsvFormat;
 import org.mitre.ptmatchadapter.fril.config.Configuration;
 import org.mitre.ptmatchadapter.fril.config.Configuration.LeftDataSource.Preprocessing.Deduplication.MinusFile;
+import org.mitre.ptmatchadapter.model.ServerAuthorization;
 import org.mitre.ptmatchadapter.util.ParametersUtil;
 
 import org.slf4j.Logger;
@@ -67,6 +68,7 @@ import com.samskivert.mustache.Template;
 
 import ca.uhn.fhir.rest.client.IGenericClient;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
+import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 
@@ -104,6 +106,8 @@ public class RecordMatchRequestProcessor {
   /** Path to the record match linkage configuration template file. */
   private String linkageTemplate;
 
+  private List<ServerAuthorization> serverAuthorizations;
+
   private static final String MASTER = "master";
   private static final String QUERY = "query";
   private static final String RESOURCE_TYPE = "resourceType";
@@ -138,7 +142,7 @@ public class RecordMatchRequestProcessor {
         // This will force an exception if not true.
         final MessageHeader msgHdr = (MessageHeader) bundleEntries.get(0)
             .getResource();
-        // Keep above from getting optimized out
+        // This log statement keeps above from getting optimized out
         LOG.trace("msg hdr id {}", msgHdr.getId());
 
         Parameters masterQryParams = null;
@@ -353,28 +357,62 @@ public class RecordMatchRequestProcessor {
 
     final String url = urlEncodeQueryParams(searchUrl);
 
-    IQuery<Bundle> query = fhirRestClient.search().byUrl(url)
-        .returnBundle(Bundle.class);
-
-    // Perform a search
-    final Bundle searchResults = query.execute();
-
-    // Split the bundle into its component resources
-    final SearchResultSplitter resultSplitter = new SearchResultSplitter();
-    final List<Resource> resources = resultSplitter.splitBundle(searchResults);
-
-    final File dataFile = createDataSourceFile(jobDir, fileName);
-    writeData(dataFile, resources, serverBase, true);
-
-    // retrieve other pages of search results
-    Bundle nextResults = searchResults;
-    while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
-      nextResults = fhirRestClient.loadPage().next(nextResults).execute();
-      List<Resource> nextResources = resultSplitter.splitBundle(nextResults);
-      writeData(dataFile, nextResources, serverBase, false);
+    LOG.info("retrieveAndStoreData, serverBase: {}", serverBase);
+    
+    final ServerAuthorization serverAuthorization = findServerAuthorization(serverBase);
+    
+    BearerTokenAuthInterceptor authInterceptor = null;
+    if (serverAuthorization != null) {
+      // register authorization interceptor with the client
+      LOG.info("assigning bearing token interceptor, {}", serverAuthorization.getAccessToken() );
+      authInterceptor = new BearerTokenAuthInterceptor(serverAuthorization.getAccessToken());
+      fhirRestClient.registerInterceptor(authInterceptor);
+    }
+    try {
+      IQuery<Bundle> query = fhirRestClient.search().byUrl(url)
+          .returnBundle(Bundle.class);
+  
+      // Perform a search
+      final Bundle searchResults = query.execute();
+  
+      // Split the bundle into its component resources
+      final SearchResultSplitter resultSplitter = new SearchResultSplitter();
+      final List<Resource> resources = resultSplitter.splitBundle(searchResults);
+  
+      final File dataFile = createDataSourceFile(jobDir, fileName);
+      writeData(dataFile, resources, serverBase, true);
+  
+      // retrieve other pages of search results
+      Bundle nextResults = searchResults;
+      while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
+        nextResults = fhirRestClient.loadPage().next(nextResults).execute();
+        List<Resource> nextResources = resultSplitter.splitBundle(nextResults);
+        writeData(dataFile, nextResources, serverBase, false);
+      }
+    } finally {
+      if (authInterceptor != null) {
+        // unregister authorization interceptor with the client
+        fhirRestClient.unregisterInterceptor(authInterceptor);
+      }
     }
   }
 
+    
+  private ServerAuthorization findServerAuthorization(String serverBase) {
+    for (ServerAuthorization sa : serverAuthorizations) {
+      LOG.info("findServerAuth serverUrl: {}  {}", sa.getServerUrl(), serverBase);
+      try {
+        if (sa.getServerUrl().equals(serverBase)) {
+          return sa;
+        }
+      } catch (NullPointerException e) {
+        // should never happen
+        LOG.warn("NULL Server URL found for server authorization: {}", sa.getTitle());
+      }
+    }
+    return null;
+  }
+    
   private String urlEncodeQueryParams(String url) {
     final StringBuilder sb = new StringBuilder((int) (url.length() * 1.2));
 
@@ -900,6 +938,22 @@ public class RecordMatchRequestProcessor {
    */
   public final void setDeleteJobResults(boolean deleteJobResults) {
     this.deleteJobResults = deleteJobResults;
+  }
+
+  /**
+   * @return the serverAuthorizations
+   */
+  public final List<ServerAuthorization> getServerAuthorizations() {
+    return serverAuthorizations;
+  }
+
+  /**
+   * @param serverAuthorizations
+   *          the serverAuthorizations to set
+   */
+  public final void setServerAuthorizations(
+      List<ServerAuthorization> serverAuthorizations) {
+    this.serverAuthorizations = serverAuthorizations;
   }
 
 }

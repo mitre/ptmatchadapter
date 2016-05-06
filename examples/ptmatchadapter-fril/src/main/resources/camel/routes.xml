@@ -25,7 +25,7 @@
  
   <!-- Poll for Record Match Request Messages --> 
   <route id="msgPoller">
-    <from uri="timer://requestPoller?fixedRate=true&amp;period=115000" />
+    <from uri="timer://requestPoller?fixedRate=true&amp;period=45000" />
     <log message="GET Messages" loggingLevel="INFO" />
     <to uri="bean:msgRetriever?method=doSearch" />
     <to uri="seda:msgIn" />
