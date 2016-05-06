@@ -1,4 +1,3 @@
-//import 'whatwg-fetch';
 import fetch from 'isomorphic-fetch';
 import postAsForm from './postAsForm';
 

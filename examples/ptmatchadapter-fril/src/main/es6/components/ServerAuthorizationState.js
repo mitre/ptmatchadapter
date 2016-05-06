@@ -1,30 +1,30 @@
-import React, {PropTypes} from 'react'
+import React, {PropTypes} from 'react';
 
 const ServerAuthorizationState = ({
-  state,
+  state
 }) =>
 <span className='state-val'>
   {(() => {
-    var status = "Unknown"
+    var status = "Unknown";
     if (typeof state.expiresAt === 'undefined' || state.expiresAt == null) {
-      status = "Inactive"
+      status = "Inactive";
     } else {
-      var now = Date()
+      var now = Date();
       if (now > state.expiresAt) {
-        status = "Expired"
+        status = "Expired";
       } else {
-        status = "Active"
+        status = "Active";
       }
     }
-    return <span>{status}
-      </span>
+    return <span>{status}</span>;
   })()}
 
-</span>
+</span>;
 
+ServerAuthorizationState.displayName = 'Server Authorization State';
 
 ServerAuthorizationState.propTypes = {
-  state: PropTypes.object.isRequired,
-}
+  state: PropTypes.object.isRequired
+};
 
-export default ServerAuthorizationState
+export default ServerAuthorizationState;
