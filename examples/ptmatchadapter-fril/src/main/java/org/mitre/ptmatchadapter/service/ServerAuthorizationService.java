@@ -26,10 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.camel.Body;
 import org.apache.camel.Exchange;
@@ -39,7 +37,6 @@ import org.apache.camel.OutHeaders;
 import org.apache.camel.Processor;
 import org.apache.camel.ProducerTemplate;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
-import org.apache.http.HttpEntity;
 import org.mitre.ptmatchadapter.service.model.AuthorizationRequestInfo;
 import org.mitre.ptmatchadapter.service.model.ServerAuthorization;
 import org.slf4j.Logger;
@@ -119,11 +116,12 @@ public class ServerAuthorizationService {
       }
     }
 
+    // request headers are considered case-insensitive, but camel has not normalized
     String origin = (String) reqHdrs.get("Origin");
     if (origin == null) {
       origin = (String) reqHdrs.get("origin");
     }
-    LOG.info("handleOptions: origin {}", origin);
+    LOG.debug("handleOptions: origin {}", origin);
 
     // Section 3.2 of RFC 7230 (https://tools.ietf.org/html/rfc7230#section-3.2)
     // says header fields are case-insensitive
@@ -144,7 +142,6 @@ public class ServerAuthorizationService {
         respHdrs.put("Access-Control-Max-Age", 43200);
         final Object corsRequestHeaders = reqHdrs.get("Access-Control-Request-Headers");
         respHdrs.put("Access-Control-Allow-Headers", corsRequestHeaders);
-  //        respHdrs.put(Exchange.HTTP_RESPONSE_CODE, 200); // OK
       } else {
         // Origin header found, but no Request-Method, so invalid request
         respHdrs.put(Exchange.HTTP_RESPONSE_CODE, 400); // BAD REQUEST 
@@ -162,24 +159,6 @@ public class ServerAuthorizationService {
     }
   }
 
-  private final Map<String, Object> corsResponseHeaders(Map<String, Object> reqHdrs) {
-    final Map<String, Object> result = new HashMap<String, Object>();
-    
-    String origin = (String) reqHdrs.get("Origin");
-    if (origin == null) {
-      origin = (String) reqHdrs.get("origin");
-    }
-
-    // RFC 7230 Section 3.2 (https://tools.ietf.org/html/rfc7230#section-3.2)
-    // says header fields are case-insensitive
-    if (origin != null) {
-      result.put("Access-Control-Allow-Origin", origin);
-      result.put("Access-Control-Allow-Credentials", "true");
-    }
-    
-    return result;
-    
-  }
     
   /**
    * Create a ServerAuthorization object.
@@ -192,7 +171,6 @@ public class ServerAuthorizationService {
       @Headers Map<String, Object> reqHdrs,
       @OutHeaders Map<String, Object> respHdrs) {
 
-    
     final String serverUrl = serverAuth.getServerUrl();
     if (serverUrl != null && !serverUrl.isEmpty()) {
       // Don't honor the incoming id value, if any
@@ -318,7 +296,7 @@ public class ServerAuthorizationService {
       if (origin == null) {
         origin = (String) reqHdrs.get("origin");
       }
-      LOG.info("handleOptions: origin {}", origin);
+      LOG.debug("handleOptions: origin {}", origin);
 
       // Section 3.2 of RFC 7230 (https://tools.ietf.org/html/rfc7230#section-3.2)
       // says header fields are case-insensitive
@@ -364,10 +342,6 @@ public class ServerAuthorizationService {
       @OutHeaders Map<String, Object> respHdrs) {
     // Retrieve the state key from the query parameters
     final String stateKey = (String) reqHdrs.get(STATE_PARAM);
-
-    for (String key : reqHdrs.keySet()) {
-      LOG.info("redirect req key: {}", key);
-    }
 
     if (stateKey == null) {
       final String msg = "Redirect from authorization server is missing state parameter";
@@ -488,7 +462,7 @@ public class ServerAuthorizationService {
 
       final int responseCode = out.getHeader(Exchange.HTTP_RESPONSE_CODE,
           Integer.class);
-      LOG.info("response code from auth server: {}", responseCode);
+      LOG.debug("response code from auth server: {}", responseCode);
 
       if (responseCode == 200) {
         final ServerAuthorization serverAuth = (ServerAuthorization) requestInfo
@@ -497,7 +471,7 @@ public class ServerAuthorizationService {
         // http component is stream-based, which means body can only be read
         // once
         final String respBody = out.getBody(String.class);
-        LOG.info("Access Token Response Body {}", respBody);
+        LOG.debug("Access Token Response Body {}", respBody);
 
         final ObjectMapper mapper = new ObjectMapper();
         try {
@@ -604,18 +578,6 @@ public class ServerAuthorizationService {
     return sb.toString();
   }
 
-  /* 5/4/2016 - mel -  may not be needed
-  public final List<ServerAuthorization> getServerAuthorizationList(
-      @Headers Map<String, Object> reqHdrs,
-      @OutHeaders Map<String, Object> respHdrs) {
-    
-    final Map<String, Object> corsHeaders = corsResponseHeaders(reqHdrs);
-    for (String key : corsHeaders.keySet()) {
-      respHdrs.put(key, (String) corsHeaders.get(key));
-    }
-    return getServerAuthorizations();
-  }
-  */
   
   /**
    * @return the serverAuthorizations

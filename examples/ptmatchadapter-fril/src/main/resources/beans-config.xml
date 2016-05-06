@@ -112,9 +112,6 @@
     <property name="sessionData" ref="oauthSessionStateMap" />
   </bean>
   
-  <bean id="formProcService" 
-      class="org.mitre.ptmatchadapter.service.FormProcessorService" />
-  
   <!-- Jolokia JVM Agent Configuration
     See https://jolokia.org/reference/html/jmx.html#jvm-spring
    -->

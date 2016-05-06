@@ -23,6 +23,13 @@ Enter <Ctrl>-c in the console in which the application was started.
 
 To stop the application, enter <ctrl>-C in the console windows.
 
+## JMX Monitoring
+
+The Patient Match Adapter for FRIL incorporates the Jolokia JMX agent library.
+One can use an application like jconsole (provided with Oracle Java) or a
+hawt.io JMX client to view information about the record match job processing.
+ 
+The Jolokia endpoint for JMX clients is at http://<host>:8778/jolokia
 
 ## License
 

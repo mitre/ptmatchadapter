@@ -17,33 +17,15 @@
     <to uri="bean:adapterConfiguration"/>
   </route>
 
-<!-- 
-  <route>
-    <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}/mgr/serverAuthForm"/>
-    <to uri="bean:serverAuthorizationService?method=createFromForm"/>
-  </route>
-  -->
   
   <route>
     <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}{{ptmatchadapter.clientAuthRedirectPath}}"/>
     <to uri="bean:serverAuthorizationService?method=processAuthorizationCode"/>
   </route>
  
-  <route>
-    <from uri="direct:hello1"/>
-    <transform>
-      <constant>Hello Kitty</constant>
-    </transform>
-  </route>
-  <route>
-    <from uri="direct:bye"/>
-    <transform>
-      <constant>Bye World</constant>
-    </transform>
-  </route>
- 
+  <!-- Poll for Record Match Request Messages --> 
   <route id="msgPoller">
-    <from uri="timer://foo?fixedRate=true&amp;period=115000" />
+    <from uri="timer://requestPoller?fixedRate=true&amp;period=115000" />
     <log message="GET Messages" loggingLevel="INFO" />
     <to uri="bean:msgRetriever?method=doSearch" />
     <to uri="seda:msgIn" />

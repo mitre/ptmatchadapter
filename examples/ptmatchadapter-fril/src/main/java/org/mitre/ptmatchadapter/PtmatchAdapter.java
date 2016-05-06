@@ -36,7 +36,6 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
 
 @SpringBootApplication
 @ImportResource("beans-config.xml")
-// EnableHawtio
 public class PtmatchAdapter extends FatJarRouter {
   public static final Logger LOG = LoggerFactory.getLogger(PtmatchAdapter.class);
 
@@ -54,9 +53,7 @@ public class PtmatchAdapter extends FatJarRouter {
   @Override
   public void configure() {
     restConfiguration().component("jetty").bindingMode(RestBindingMode.json)
-      .host(webServerIpAddr).port(webServerPort); //.enableCORS(true) 
-      //.corsHeaderProperty("Access-Control-Max-Age", "43200")
-      //.corsHeaderProperty("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+      .host(webServerIpAddr).port(webServerPort); 
     // Bug in Camel 2.16.2 (fixed since then, but not released) results in 
     // exception at startup when multiple rest() services are specified in a 
     // Spring Boot application.
@@ -70,10 +67,7 @@ public class PtmatchAdapter extends FatJarRouter {
 //      .apiProperty("cors", "true");
     
     rest("/mgr").description("Record Matching System Adapter Management rest service")
-//      .consumes("application/json").produces("application/json")
 
-//    .get("/{id}").description("Find user by id").outType(User.class)
-//        .to("bean:userService?method=getUser(${header.id})")
 //
 //    .put().description("Updates or create a user").type(User.class)
 //        .to("bean:userService?method=updateUser")
@@ -104,25 +98,12 @@ public class PtmatchAdapter extends FatJarRouter {
         .to("bean:serverAuthorizationService")
 
       .options("/serverAuthorization")
-        .to("bean:serverAuthorizationService?method=handleOptions")
+        .to("bean:serverAuthorizationService?method=handleOptions");
         
-
-        .get("/hello").description("basic greeting").produces("text/plain")
-        .to("direct:hello")
-      .get("/say/hello").to("direct:hello1").produces("text/plain");
-    
-    //rest("/hello").get().to("direct:hello");
-    //rest("/say/hello1").get().to("direct:hello1");
-    
-    from("direct:authResp").routeId("Authorization Response Route").transform().simple("Yippee!");
-
-    from("direct:hello").routeId("Hello World Route").transform().simple("Hello World!");
   }
 
   
   public static void main(String... args) {
-    //System.setProperty(AuthenticationFilter.HAWTIO_AUTHENTICATION_ENABLED, "false");
-
     // Create a one-time task that will open a url to config page in a browser
     // after the application has been given a couple of seconds to start up.
     new Timer().schedule(new TimerTask() {
