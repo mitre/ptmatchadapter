@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.mitre.ptmatchadapter.service.model;
+package org.mitre.ptmatchadapter.model;
 
 import java.util.Date;
 
@@ -93,8 +93,14 @@ public class ServerAuthorization {
    * @param serverUrl the serverUrl to set
    */
   public final void setServerUrl(String serverUrl) {
-    this.serverUrl = serverUrl;
+    // Remove any trailing slash
+    if (serverUrl != null && serverUrl.endsWith("/")) {
+      this.serverUrl = serverUrl.substring(0, serverUrl.length() - 1);
+    } else {
+      this.serverUrl = serverUrl;
+    }
   }
+
   /**
    * @return the accessToken
    */
