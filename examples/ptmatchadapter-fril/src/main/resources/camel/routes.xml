@@ -1,12 +1,31 @@
-<routes xmlns="http://camel.apache.org/schema/spring" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ <routes xmlns="http://camel.apache.org/schema/spring" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns:beans="http://www.springframework.org/schema/beans"
   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd"
 >
 
+  <!-- See http://nigap.blogspot.fr/2014/12/camel-how-to-expose-static-resources-in.html -->
+  <!-- This route just initialized the static handler on the specified port number-->
+  <route>
+    <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}?handlers=#staticPageHandler&amp;enableJmx=true" />
+    <log message="Serving static content: ${header.HTTP_URI}" loggingLevel="INFO" />
+  </route>
 
+  <!-- Endpoint configuration user interface -->
+  <route>
+    <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}/ptmatchadapter/config&amp;enableJmx=true"/>
+    <to uri="bean:adapterConfiguration"/>
+  </route>
+
+  
+  <route>
+    <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}{{ptmatchadapter.clientAuthRedirectPath}}"/>
+    <to uri="bean:serverAuthorizationService?method=processAuthorizationCode"/>
+  </route>
+ 
+  <!-- Poll for Record Match Request Messages --> 
   <route id="msgPoller">
-    <from uri="timer://foo?fixedRate=true&amp;period=15000" />
+    <from uri="timer://requestPoller?fixedRate=true&amp;period=115000" />
     <log message="GET Messages" loggingLevel="INFO" />
     <to uri="bean:msgRetriever?method=doSearch" />
     <to uri="seda:msgIn" />
@@ -83,6 +102,5 @@
     <log message="${body}" loggingLevel="INFO" />
     <to uri="stream:out" />
   </route>
-
 
 </routes>

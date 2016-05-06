@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns:util="http://www.springframework.org/schema/util"
   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
->
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+  ">
 
 
   <bean id="fhirContext" class="ca.uhn.fhir.context.FhirContext"
@@ -71,9 +72,63 @@
   </bean>
 
 
-  <bean id="resourceSerializer" class="org.mitre.ptmatchadapter.util.ResourceSerializer">
+  <bean id="  resourceSerializer" class="org.mitre.ptmatchadapter.util.ResourceSerializer">
     <constructor-arg name="fhirContext" ref="fhirContext" />
     <property name="format" value="json" />
     <property name="prettyPrint" value="true" />
+  </bean>
+  
+  <bean id="adapterConfiguration" class="org.mitre.ptmatchadapter.gui.AdapterConfiguration">
+  </bean>
+  
+  <bean id="webResource" class="org.eclipse.jetty.util.resource.Resource"
+    factory-method="newClassPathResource" >
+    <constructor-arg value="/www" />
+    <!-- constructor-arg value="/dist" / -->
+  </bean>
+
+ <util:list id="welcomeFiles">
+   <value>index.html</value>
+ </util:list>
+
+  <bean id="staticPageHandler" class="org.eclipse.jetty.server.handler.ResourceHandler">
+    <property name="baseResource" ref="webResource"/>    
+    <property name="directoriesListed" value="true" />
+    <property name="welcomeFiles" ref="welcomeFiles" />
+  </bean>
+  
+  <util:list id="serverAuthorizations" list-class="java.util.ArrayList"/>
+
+  <util:map id="oauthSessionStateMap" map-class="java.util.HashMap"/>
+   
+  <bean id="serverAuthorizationService" 
+      class="org.mitre.ptmatchadapter.service.ServerAuthorizationService">
+    <property name="serverAuthorizations" ref="serverAuthorizations"/>
+    <property name="authorizationServer" value="${oauth2.authorization.server}" />
+    <property name="authorizationEndpoint" value="${oauth2.authorization.authCodeEndpoint}" />
+    <property name="accessTokenEndpoint" value="${oauth2.authorization.accessTokenEndpoint}" />
+    <property name="clientId" value="${ptmatchadapter.oauth2.clientID}" />
+    <property name="clientSecret" value="${ptmatchadapter.oauth2.clientSecret}" />
+    <property name="sessionData" ref="oauthSessionStateMap" />
+  </bean>
+  
+  <!-- Jolokia JVM Agent Configuration
+    See https://jolokia.org/reference/html/jmx.html#jvm-spring
+   -->
+  <bean name="jolokiaSvr" id="jolokia" 
+      class="org.jolokia.jvmagent.spring.SpringJolokiaAgent">
+    <property name="lookupConfig" value="false"/>
+    <property name="systemPropertiesMode" value="never"/>
+    <property name="config">
+      <bean class="org.jolokia.jvmagent.spring.SpringJolokiaConfigHolder">
+        <property name="config">
+          <util:map>
+            <entry key="autoStart" value="true"/>
+            <entry key="host" value="0.0.0.0"/>
+            <entry key="port" value="8778"/>
+          </util:map>
+        </property>
+      </bean>
+    </property>
   </bean>
 </beans>
