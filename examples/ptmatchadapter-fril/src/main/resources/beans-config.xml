@@ -50,6 +50,10 @@
 
   <bean id="searchResultSplitter" class="org.mitre.ptmatchadapter.SearchResultSplitter" />
 
+  <!-- Globally accessible list of Server Authorizations -->
+  <!-- TODO Persist list of server authorizations. -->
+  <util:list id="serverAuthorizations" list-class="java.util.ArrayList"/>
+
 
   <bean id="requestHandler" 
       class="org.mitre.ptmatchadapter.fril.RecordMatchRequestProcessor">
@@ -59,6 +63,7 @@
     <property name="workDir" value="${ptmatchadapter.workDir}" />
     <property name="deduplicationTemplate" value="${ptmatchadapter.deduplicationTemplate}" />
     <property name="deleteJobResults" value="${ptmatchadapter.deleteJobResults}" />
+    <property name="serverAuthorizations" ref="serverAuthorizations"/>
   </bean>
 
   <bean id="acknowledgmentBuilder" 
@@ -97,8 +102,6 @@
     <property name="welcomeFiles" ref="welcomeFiles" />
   </bean>
   
-  <util:list id="serverAuthorizations" list-class="java.util.ArrayList"/>
-
   <util:map id="oauthSessionStateMap" map-class="java.util.HashMap"/>
    
   <bean id="serverAuthorizationService" 

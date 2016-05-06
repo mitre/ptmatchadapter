@@ -57,6 +57,7 @@ import org.mitre.ptmatchadapter.SearchResultSplitter;
 import org.mitre.ptmatchadapter.format.SimplePatientCsvFormat;
 import org.mitre.ptmatchadapter.fril.config.Configuration;
 import org.mitre.ptmatchadapter.fril.config.Configuration.LeftDataSource.Preprocessing.Deduplication.MinusFile;
+import org.mitre.ptmatchadapter.service.model.ServerAuthorization;
 import org.mitre.ptmatchadapter.util.ParametersUtil;
 
 import org.slf4j.Logger;
@@ -103,6 +104,9 @@ public class RecordMatchRequestProcessor {
 
   /** Path to the record match linkage configuration template file. */
   private String linkageTemplate;
+
+  private List<ServerAuthorization> serverAuthorizations;
+
 
   private static final String MASTER = "master";
   private static final String QUERY = "query";
@@ -900,6 +904,21 @@ public class RecordMatchRequestProcessor {
    */
   public final void setDeleteJobResults(boolean deleteJobResults) {
     this.deleteJobResults = deleteJobResults;
+  }
+
+  /**
+   * @return the serverAuthorizations
+   */
+  public final List<ServerAuthorization> getServerAuthorizations() {
+    return serverAuthorizations;
+  }
+
+  /**
+   * @param serverAuthorizations the serverAuthorizations to set
+   */
+  public final void setServerAuthorizations(
+      List<ServerAuthorization> serverAuthorizations) {
+    this.serverAuthorizations = serverAuthorizations;
   }
 
 }
