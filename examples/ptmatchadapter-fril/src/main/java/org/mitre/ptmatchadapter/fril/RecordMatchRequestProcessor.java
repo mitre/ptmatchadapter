@@ -207,9 +207,11 @@ public class RecordMatchRequestProcessor {
           fhirRestClient.registerInterceptor(loggingInterceptor);
         }
 
+        int numMasterRecs = 0;
         try {
           // Retrieve the data associated with the search urls
-          retrieveAndStoreData(masterSearchUrl, masterServerBase, jobDir, "master");
+          numMasterRecs = retrieveAndStoreData(
+              masterSearchUrl, masterServerBase, jobDir, "master");
 
           if (querySearchUrl != null) {
             isDeduplication = false;
@@ -245,45 +247,52 @@ public class RecordMatchRequestProcessor {
           }
         }
 
-        final File configFile = prepareMatchingRuleConfiguration(isDeduplication,
-            jobDir);
-
-        // Perform the Match Operation
-        LOG.debug("About to Start FRIL w/ config {}", configFile.getAbsolutePath());
-        final int numMatches = findMatches(isDeduplication, configFile);
-        LOG.info("FRIL Numbber of Matches: {}", numMatches);
-
-        if (numMatches == 0) {
+        // if no records were returned for the master record set query
+        if (numMasterRecs == 0) {
           respBuilder = new RecordMatchResultsBuilder(bundle, ResponseType.OK);
-          respBuilder.outcomeDetailText("No Matches Found");
-          response = respBuilder.build();
-
-        } else if (numMatches > 0) {
-          // Find the name of the file containing duplicates from the config
-          // file
-          final File dupsFile = getDuplicatesFile(configFile);
-          // Ensure the duplicates file exists
-          if (!dupsFile.exists()) {
-            final String errMsg = "Unable to find duplicates file";
-            LOG.error(errMsg + " at " + dupsFile.getAbsolutePath());
-            throw new FileNotFoundException(errMsg);
-          }
-
-          // Construct results
-          respBuilder = new RecordMatchResultsBuilder(bundle, ResponseType.OK);
-          respBuilder.outcomeDetailText("Deduplication Complete");
-          respBuilder.duplicates(dupsFile);
-          response = respBuilder.build();
-
+          respBuilder.outcomeDetailText("No Records Found in Master Record Set");
+          response = respBuilder.build();          
         } else {
-          final String errMsg = "Unknown Processing Error";
-          LOG.error("{} bundleId: {}", errMsg, bundle.getId());
-
-          // Construct an error result
-          respBuilder = new RecordMatchResultsBuilder(bundle,
-              ResponseType.FATALERROR);
-          respBuilder.outcomeIssueDiagnostics(errMsg);
-          response = respBuilder.build();
+          final File configFile = prepareMatchingRuleConfiguration(isDeduplication,
+              jobDir);
+  
+          // Perform the Match Operation
+          LOG.debug("About to Start FRIL w/ config {}", configFile.getAbsolutePath());
+          final int numMatches = findMatches(isDeduplication, configFile);
+          LOG.info("FRIL Number of Matches: {}", numMatches);
+  
+          if (numMatches == 0) {
+            respBuilder = new RecordMatchResultsBuilder(bundle, ResponseType.OK);
+            respBuilder.outcomeDetailText("No Matches Found");
+            response = respBuilder.build();
+  
+          } else if (numMatches > 0) {
+            // Find the name of the file containing duplicates from the config
+            // file
+            final File dupsFile = getDuplicatesFile(configFile);
+            // Ensure the duplicates file exists
+            if (!dupsFile.exists()) {
+              final String errMsg = "Unable to find duplicates file";
+              LOG.error(errMsg + " at " + dupsFile.getAbsolutePath());
+              throw new FileNotFoundException(errMsg);
+            }
+  
+            // Construct results
+            respBuilder = new RecordMatchResultsBuilder(bundle, ResponseType.OK);
+            respBuilder.outcomeDetailText("Deduplication Complete");
+            respBuilder.duplicates(dupsFile);
+            response = respBuilder.build();
+  
+          } else {
+            final String errMsg = "Unknown Processing Error";
+            LOG.error("{} bundleId: {}", errMsg, bundle.getId());
+  
+            // Construct an error result
+            respBuilder = new RecordMatchResultsBuilder(bundle,
+                ResponseType.FATALERROR);
+            respBuilder.outcomeIssueDiagnostics(errMsg);
+            response = respBuilder.build();
+          }
         }
 
       } catch (Exception e) {
@@ -351,10 +360,13 @@ public class RecordMatchRequestProcessor {
    * @param jobDir
    * @param fileName
    * @throws IOException
+   *
    */
-  private void retrieveAndStoreData(String searchUrl, String serverBase,
+  private int retrieveAndStoreData(String searchUrl, String serverBase,
       File jobDir, String fileName) throws IOException {
 
+    int numRecords = 0;
+    
     final String url = urlEncodeQueryParams(searchUrl);
 
     LOG.info("retrieveAndStoreData, serverBase: {}", serverBase);
@@ -381,13 +393,15 @@ public class RecordMatchRequestProcessor {
   
       final File dataFile = createDataSourceFile(jobDir, fileName);
       writeData(dataFile, resources, serverBase, true);
-  
+      numRecords = resources.size();
+      
       // retrieve other pages of search results
       Bundle nextResults = searchResults;
       while (nextResults.getLink(Bundle.LINK_NEXT) != null) {
         nextResults = fhirRestClient.loadPage().next(nextResults).execute();
         List<Resource> nextResources = resultSplitter.splitBundle(nextResults);
         writeData(dataFile, nextResources, serverBase, false);
+        numRecords += nextResources.size();
       }
     } finally {
       if (authInterceptor != null) {
@@ -395,6 +409,7 @@ public class RecordMatchRequestProcessor {
         fhirRestClient.unregisterInterceptor(authInterceptor);
       }
     }
+    return numRecords;
   }
 
     
