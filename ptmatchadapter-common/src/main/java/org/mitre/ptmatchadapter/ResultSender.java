@@ -16,15 +16,19 @@
  */
 package org.mitre.ptmatchadapter;
 
+import java.util.List;
+
 import org.hl7.fhir.instance.model.Bundle;
 import org.hl7.fhir.instance.model.api.IBaseOperationOutcome;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IIdType;
+import org.mitre.ptmatchadapter.model.ServerAuthorization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.IGenericClient;
+import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
 
 /**
@@ -36,6 +40,8 @@ public class ResultSender {
 
   private IGenericClient client;
 
+  private List<ServerAuthorization> serverAuthorizations;
+
   /**
    * Submits the given Bundle to a pre-configured FHIR Server using PUT.
    * 
@@ -43,6 +49,17 @@ public class ResultSender {
    *          Bundle containing record match results
    */
   public void sendMessage(Bundle bundle) {
+    final ServerAuthorization serverAuthorization =
+        findServerAuthorization(client.getServerBase());
+
+    BearerTokenAuthInterceptor authInterceptor = null;
+    if (serverAuthorization != null) {
+      // register authorization interceptor with the client
+      LOG.info("assigning bearing token interceptor, {}", serverAuthorization.getAccessToken() );
+      authInterceptor = new BearerTokenAuthInterceptor(serverAuthorization.getAccessToken());
+      client.registerInterceptor(authInterceptor);
+    }
+
     LoggingInterceptor loggingInterceptor = null;
     if (LOG.isDebugEnabled()) {
       loggingInterceptor = new LoggingInterceptor(true);
@@ -54,6 +71,10 @@ public class ResultSender {
       // Invoke the server update method
       outcome = client.update().resource(bundle).encodedJson().execute();
     } finally {
+      if (authInterceptor != null) {
+        // unregister authorization interceptor with the client
+        client.unregisterInterceptor(authInterceptor);
+      }
       if (loggingInterceptor != null) {
         client.unregisterInterceptor(loggingInterceptor);
       }
@@ -84,6 +105,23 @@ public class ResultSender {
     }
   }
 
+  private ServerAuthorization findServerAuthorization(String serverBase) {
+    if (serverAuthorizations != null) {
+      for (ServerAuthorization sa : serverAuthorizations) {
+        LOG.info("findServerAuth serverUrl: {}  {}", sa.getServerUrl(), serverBase);
+        try {
+          if (sa.getServerUrl().equals(serverBase)) {
+            return sa;
+          }
+        } catch (NullPointerException e) {
+          // should never happen
+          LOG.warn("NULL Server URL found for server authorization: {}", sa.getTitle());
+        }
+      }
+    }
+    return null;
+  }
+
   /**
    * @return the client
    */
@@ -97,6 +135,22 @@ public class ResultSender {
    */
   public final void setClient(IGenericClient client) {
     this.client = client;
+  }
+
+  /**
+   * @return the serverAuthorizations
+   */
+  public final List<ServerAuthorization> getServerAuthorizations() {
+    return serverAuthorizations;
+  }
+
+
+  /**
+   * @param serverAuthorizations the serverAuthorizations to set
+   */
+  public final void setServerAuthorizations(
+      List<ServerAuthorization> serverAuthorizations) {
+    this.serverAuthorizations = serverAuthorizations;
   }
 
 }
