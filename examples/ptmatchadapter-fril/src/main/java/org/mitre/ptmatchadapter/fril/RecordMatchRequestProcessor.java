@@ -212,7 +212,7 @@ public class RecordMatchRequestProcessor {
           // Retrieve the data associated with the search urls
           numMasterRecs = retrieveAndStoreData(
               masterSearchUrl, masterServerBase, jobDir, "master");
-
+          LOG.info("Number of Master Recs Retrieved: {} ", numMasterRecs);
           if (querySearchUrl != null) {
             isDeduplication = false;
             retrieveAndStoreData(querySearchUrl, queryServerBase, jobDir, "query");
