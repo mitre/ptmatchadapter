@@ -16,15 +16,20 @@
  */
 package org.mitre.ptmatchadapter;
 
+import java.util.List;
+
 import org.hl7.fhir.instance.model.Bundle;
 import org.hl7.fhir.instance.model.api.IBaseOperationOutcome;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.instance.model.api.IIdType;
+import org.mitre.ptmatchadapter.model.ServerAuthorization;
+import org.mitre.ptmatchadapter.util.AuthorizationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.IGenericClient;
+import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
 
 /**
@@ -35,6 +40,10 @@ public class ResultSender {
   private static final Logger LOG = LoggerFactory.getLogger(ResultSender.class);
 
   private IGenericClient client;
+
+  /** list of servers for which the user authorized access. */
+  private List<ServerAuthorization> serverAuthorizations;
+
 
   /**
    * Submits the given Bundle to a pre-configured FHIR Server using PUT.
@@ -48,12 +57,26 @@ public class ResultSender {
       loggingInterceptor = new LoggingInterceptor(true);
       client.registerInterceptor(loggingInterceptor);
     }
+    final ServerAuthorization serverAuthorization = 
+        AuthorizationUtil.findServerAuthorization(serverAuthorizations, client.getServerBase());
+    
+    BearerTokenAuthInterceptor authInterceptor = null;
+    if (serverAuthorization != null) {
+      // register authorization interceptor with the client
+      LOG.info("assigning bearing token interceptor, {}", serverAuthorization.getAccessToken() );
+      authInterceptor = new BearerTokenAuthInterceptor(serverAuthorization.getAccessToken());
+      client.registerInterceptor(authInterceptor);
+    }
 
     MethodOutcome outcome;
     try {
       // Invoke the server update method
       outcome = client.update().resource(bundle).encodedJson().execute();
     } finally {
+      if (authInterceptor != null) {
+        // unregister authorization interceptor with the client
+        client.unregisterInterceptor(authInterceptor);
+      }
       if (loggingInterceptor != null) {
         client.unregisterInterceptor(loggingInterceptor);
       }
@@ -97,6 +120,21 @@ public class ResultSender {
    */
   public final void setClient(IGenericClient client) {
     this.client = client;
+  }
+
+  /**
+   * @return the serverAuthorizations
+   */
+  public final List<ServerAuthorization> getServerAuthorizations() {
+    return serverAuthorizations;
+  }
+
+  /**
+   * @param serverAuthorizations the serverAuthorizations to set
+   */
+  public final void setServerAuthorizations(
+      List<ServerAuthorization> serverAuthorizations) {
+    this.serverAuthorizations = serverAuthorizations;
   }
 
 }

@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.hl7.fhir.instance.model.Bundle;
 import org.mitre.ptmatchadapter.model.ServerAuthorization;
+import org.mitre.ptmatchadapter.util.AuthorizationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ public class MessageRetriever {
     Bundle results = null;
 
     final ServerAuthorization serverAuthorization =
-        findServerAuthorization(client.getServerBase());
+        AuthorizationUtil.findServerAuthorization(serverAuthorizations, client.getServerBase());
 
     BearerTokenAuthInterceptor authInterceptor = null;
     if (serverAuthorization != null) {
@@ -132,22 +133,6 @@ public class MessageRetriever {
     return results;
   }
 
-  private ServerAuthorization findServerAuthorization(String serverBase) {
-    if (serverAuthorizations != null) {
-      for (ServerAuthorization sa : serverAuthorizations) {
-        LOG.info("findServerAuth serverUrl: {}  {}", sa.getServerUrl(), serverBase);
-        try {
-          if (sa.getServerUrl().equals(serverBase)) {
-            return sa;
-          }
-        } catch (NullPointerException e) {
-          // should never happen
-          LOG.warn("NULL Server URL found for server authorization: {}", sa.getTitle());
-        }
-      }
-    }
-    return null;
-  }
   
   /**
    * @return the desinationUri

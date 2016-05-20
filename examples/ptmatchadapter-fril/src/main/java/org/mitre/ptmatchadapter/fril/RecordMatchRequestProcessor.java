@@ -58,6 +58,7 @@ import org.mitre.ptmatchadapter.format.SimplePatientCsvFormat;
 import org.mitre.ptmatchadapter.fril.config.Configuration;
 import org.mitre.ptmatchadapter.fril.config.Configuration.LeftDataSource.Preprocessing.Deduplication.MinusFile;
 import org.mitre.ptmatchadapter.model.ServerAuthorization;
+import org.mitre.ptmatchadapter.util.AuthorizationUtil;
 import org.mitre.ptmatchadapter.util.ParametersUtil;
 
 import org.slf4j.Logger;
@@ -371,7 +372,7 @@ public class RecordMatchRequestProcessor {
 
     LOG.info("retrieveAndStoreData, serverBase: {}", serverBase);
     
-    final ServerAuthorization serverAuthorization = findServerAuthorization(serverBase);
+    final ServerAuthorization serverAuthorization = AuthorizationUtil.findServerAuthorization(serverAuthorizations, serverBase);
     
     BearerTokenAuthInterceptor authInterceptor = null;
     if (serverAuthorization != null) {
@@ -412,21 +413,6 @@ public class RecordMatchRequestProcessor {
     return numRecords;
   }
 
-    
-  private ServerAuthorization findServerAuthorization(String serverBase) {
-    for (ServerAuthorization sa : serverAuthorizations) {
-      LOG.info("findServerAuth serverUrl: {}  {}", sa.getServerUrl(), serverBase);
-      try {
-        if (sa.getServerUrl().equals(serverBase)) {
-          return sa;
-        }
-      } catch (NullPointerException e) {
-        // should never happen
-        LOG.warn("NULL Server URL found for server authorization: {}", sa.getTitle());
-      }
-    }
-    return null;
-  }
     
   private String urlEncodeQueryParams(String url) {
     final StringBuilder sb = new StringBuilder((int) (url.length() * 1.2));

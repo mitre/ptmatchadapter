@@ -76,6 +76,7 @@
 
   <bean id="resultSender" class="org.mitre.ptmatchadapter.ResultSender">
     <property name="client" ref="fhirRestClient" />
+    <property name="serverAuthorizations" ref="serverAuthorizations"/>
   </bean>
 
 
