@@ -186,9 +186,6 @@ public class RecordMatchRequestProcessor {
           }
         }
 
-        LOG.info("Params found: master: {} query: {}", (masterQryParams != null),
-            (queryQryParams != null));
-
         if (masterSearchUrl == null) {
           final String errMsg = "Required Parameter for master record set is missing, bundle: "
               + bundle.getId();
@@ -370,9 +367,11 @@ public class RecordMatchRequestProcessor {
     
     final String url = urlEncodeQueryParams(searchUrl);
 
-    LOG.info("retrieveAndStoreData, serverBase: {}", serverBase);
+    LOG.info("retrieveAndStoreData, serverBase: {}  searchUrl: {} encoded query: {}", 
+        serverBase, searchUrl, url);
     
-    final ServerAuthorization serverAuthorization = AuthorizationUtil.findServerAuthorization(serverAuthorizations, serverBase);
+    final ServerAuthorization serverAuthorization = 
+        AuthorizationUtil.findServerAuthorization(serverAuthorizations, serverBase);
     
     BearerTokenAuthInterceptor authInterceptor = null;
     if (serverAuthorization != null) {
@@ -424,7 +423,7 @@ public class RecordMatchRequestProcessor {
       LOG.trace("queryExpr {}", queryExpr);
 
       final Pattern p = Pattern.compile(
-          "\\G([A-Za-z0-9-_]+)=([A-Za-z0-9-+:#^\\.,<>;%*\\(\\)_/\\[\\]\\{\\}\\\\ ]+)[&]?");
+          "\\G([A-Za-z0-9-_]+)=([A-Za-z0-9-+:#|^\\.,<>;%*\\(\\)_/\\[\\]\\{\\}\\\\ ]+)[&]?");
       final Matcher m = p.matcher(queryExpr);
       while (m.find()) {
         LOG.trace("group 1: {}   group 2: {}", m.group(1), m.group(2));
