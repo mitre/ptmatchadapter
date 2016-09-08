@@ -22,12 +22,12 @@ subprojects {
   
   // gradle "extra" variables propagate to subprojects like a global variable
   ext {
-    springVersion = '4.2.4.RELEASE'
-    camelVersion = '2.16.2'
-    hapiFhirVersion = '1.4'
+    springVersion = '4.3.+.RELEASE'
+    camelVersion = '2.16.2+'
+    hapiFhirVersion = '1.5'
     mongodbVersion = '3.2.1'
-    slf4jVersion = '1.7.18'
-    junitVersion = '4.12'
+    slf4jVersion = '1.7.18+'
+    junitVersion = '4.12+'
   }
   
   task allDeps(type: DependencyReportTask){}

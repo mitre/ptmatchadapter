@@ -381,11 +381,9 @@ public class RecordMatchRequestProcessor {
       fhirRestClient.registerInterceptor(authInterceptor);
     }
     try {
-      IQuery<Bundle> query = fhirRestClient.search().byUrl(url)
-          .returnBundle(Bundle.class);
-  
       // Perform a search
-      final Bundle searchResults = query.execute();
+      final Bundle searchResults = fhirRestClient.search().byUrl(url)
+          .returnBundle(Bundle.class).execute();
   
       // Split the bundle into its component resources
       final SearchResultSplitter resultSplitter = new SearchResultSplitter();

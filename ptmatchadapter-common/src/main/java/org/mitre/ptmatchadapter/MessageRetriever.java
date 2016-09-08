@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import ca.uhn.fhir.rest.client.IGenericClient;
 import ca.uhn.fhir.rest.client.interceptor.BearerTokenAuthInterceptor;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
-import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 
 /**
@@ -99,7 +98,7 @@ public class MessageRetriever {
       sb.append("&_lastUpdated=gt");
       sb.append(df.format(d));
 
-      final IQuery<Bundle> query = client.search()
+      results = client.search()
           .byUrl(sb.toString())
           // .forResource(Bundle.class)
           // .encodedJson() // results in _format query parameter, which is not
@@ -110,10 +109,8 @@ public class MessageRetriever {
           // StringClientParam(Bundle.SP_TYPE)).matches().value(BundleTypeEnum.MESSAGE.toString()))
           // .and(Patient.CAREPROVIDER.hasChainedProperty(Organization.NAME.matches().value(destinationUri)))
           // .and(Patient.CAREPROVIDER.hasChainedProperty(Organization.NAME.matches().value("Health")))
-          .returnBundle(Bundle.class);
-
-      // Perform a search
-      results = query.execute();
+          .returnBundle(Bundle.class)
+          .execute();
 
     } catch (BaseServerResponseException e) {
       LOG.warn(String.format("Error response from server.  code: %d, %s",

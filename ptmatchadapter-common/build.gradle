@@ -17,6 +17,6 @@ dependencies {
   compile 'com.fasterxml.jackson.core:jackson-annotations:2.7.4'
   
   testCompile "junit:junit:${junitVersion}"
-  runtime 'ch.qos.logback:logback-classic:1.1.5'
+  runtime 'ch.qos.logback:logback-classic:1.1.5+'
 }
 

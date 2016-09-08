@@ -57,13 +57,12 @@ public class ResourceRetriever {
       final StringBuilder sb = new StringBuilder(100);
       sb.append(queryExpr);
 
-      final IQuery<Bundle> query = client.search()
+      // Perform a search
+      results = client.search()
           .byUrl(sb.toString())
           .usingStyle(SearchStyleEnum.POST)  // POST ignored when byUrl is called
-          .returnBundle(Bundle.class);
-
-      // Perform a search
-      results = query.execute();
+          .returnBundle(Bundle.class)
+          .execute();
 
     } catch (BaseServerResponseException e) {
       LOG.warn(String.format("Error response from server.  code: %d, %s", e.getStatusCode(), e.getMessage()));
