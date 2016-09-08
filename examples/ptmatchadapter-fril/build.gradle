@@ -86,7 +86,7 @@ dependencies {
   runtime files('lib/rsyntaxtextarea.jar')
 
   runtime 'commons-logging:commons-logging:1.2'
-  runtime 'log4j:log4j:1.2.17'
+  runtime 'log4j:log4j:1.2.17+'
 
   runtime 'au.com.bytecode:opencsv:2.4'
 
@@ -102,7 +102,7 @@ dependencies {
 
   // Something used by FRIL depends on xml-apis v1.4.x
   runtime 'xml-apis:xml-apis:1.4.01'
-  runtime 'xerces:xercesImpl:2.11.0'
+  runtime 'xerces:xercesImpl:2.11.+'
 }
 
 

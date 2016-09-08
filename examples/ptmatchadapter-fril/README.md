@@ -6,6 +6,9 @@ for an adapter between the ptmatch test harness and a record matching system.
 
 To run, set the working directory to the project top level (i.., ptmatchadapter)
 
+## Configuring the Application
+Set properties in the file src/main/resources/applications.properties
+
 
 ## Running the Application
 
@@ -14,8 +17,10 @@ To run, set the working directory to the project top level (i.., ptmatchadapter)
 2. Change your working directory to the project's top level folder (i.e., ptmatchadapter).
 3. Enter the following one line line and press the Enter key: 
    
-gradlew :examples:ptmatchadapter-fril:bootRun 
-   
+./gradlew :examples:ptmatchadapter-fril:bootRun 
+
+After starting, the application will open a browser window within which you can specify an OpenID Connect server with which to associate the ptmatch adapter. 
+
 
 ## Stopping the Application
 

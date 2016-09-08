@@ -150,9 +150,12 @@ public class BasicRecordMatchResultsBuilder {
     final MessageHeaderResponseComponent resp = new MessageHeaderResponseComponent();
     // This library prefixes identifier w/ 'MessageHeader/', so strip that off
     String idStr = reqMsgHdr.getId();
-    int pos = idStr.indexOf("/");
-    if (pos > 0) {
-      idStr = idStr.substring(pos + 1);
+    LOG.info("Request Message Header ID: {}", idStr);
+    if (idStr != null) {
+      final int pos = idStr.indexOf("/");
+      if (pos > 0) {
+        idStr = idStr.substring(pos + 1);
+      }
     }
     resp.setIdentifier(idStr);
     resp.setCode(responseCode);

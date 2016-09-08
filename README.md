@@ -1,6 +1,24 @@
 # ptmatchadapter
 Adapter for patient matching systems to integrate with the [PCOR patient matching test harness](http://mitre.github.io/test-harness-interface/)
 
+## Building
+This project uses gradle for build management.  After changing the working directory to the project root, the following are useful commands.
+
+Compile and run unit tests for the project
+```
+$ gradle build
+```
+
+Present a list of available tasks
+```
+$ gradle tasks 
+```
+
+Present a list of gradle command-line options 
+```
+$ gradle --help 
+```
+
 
 ## License
 

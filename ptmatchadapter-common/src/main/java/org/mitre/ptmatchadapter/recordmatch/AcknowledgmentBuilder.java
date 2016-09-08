@@ -30,6 +30,9 @@ import org.hl7.fhir.instance.model.MessageHeader.MessageDestinationComponent;
 import org.hl7.fhir.instance.model.MessageHeader.MessageHeaderResponseComponent;
 import org.hl7.fhir.instance.model.MessageHeader.MessageSourceComponent;
 import org.hl7.fhir.instance.model.MessageHeader.ResponseType;
+import org.mitre.ptmatchadapter.util.ResourceSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Constructs a response message that constructs an acknowledgement message for
@@ -39,6 +42,9 @@ import org.hl7.fhir.instance.model.MessageHeader.ResponseType;
  *
  */
 public class AcknowledgmentBuilder {
+  private static final Logger LOG = LoggerFactory
+      .getLogger(AcknowledgmentBuilder.class);
+
 
   private String sourceName = "Unknown";
 
@@ -89,8 +95,13 @@ public class AcknowledgmentBuilder {
     final MessageHeaderResponseComponent resp = new MessageHeaderResponseComponent();
     // This library prefixes identifier w/ 'MessageHeader/', so strip that off
     final String idStr = reqMsgHdr.getId();
-    int pos = idStr.indexOf("/");
-    resp.setIdentifier(idStr.substring(pos + 1));
+    LOG.info("Request Message Header ID: {}", idStr);
+    if (idStr != null) {
+      int pos = idStr.indexOf("/");
+      resp.setIdentifier(idStr.substring(pos + 1));
+    } else {
+      resp.setIdentifier(idStr);
+    }
     resp.setCode(ResponseType.OK);
     msgHdr.setResponse(resp);
 

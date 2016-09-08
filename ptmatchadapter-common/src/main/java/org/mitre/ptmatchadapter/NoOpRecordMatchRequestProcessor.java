@@ -123,20 +123,15 @@ public class NoOpRecordMatchRequestProcessor {
         }
         try {
           // Retrieve the data associated with the search urls
-          IQuery<Bundle> query = fhirRestClient.search()
-              .byUrl(masterSearchUrl).returnBundle(Bundle.class);
-
-          // Perform a search
-          final Bundle masterSetResults = query.execute();
+          final Bundle masterSetResults = fhirRestClient.search()
+              .byUrl(masterSearchUrl).returnBundle(Bundle.class).execute();
 
           Bundle querySetResults = null;
           if (querySearchUrl != null) {
             // Retrieve the data associated with the search urls
-            query = fhirRestClient.search()
-                .byUrl(querySearchUrl).returnBundle(Bundle.class);
-
-            // Perform a search
-            querySetResults = query.execute();
+            querySetResults = fhirRestClient.search()
+                .byUrl(querySearchUrl).returnBundle(Bundle.class)
+                .execute();
           }
 
         } catch (BaseServerResponseException e) {
