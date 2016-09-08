@@ -36,6 +36,33 @@ hawt.io JMX client to view information about the record match job processing.
  
 The Jolokia endpoint for JMX clients is at http://<host>:8778/jolokia
 
+## Generating a JSON Public/Private Key Pair
+A pre-compiled version of the open source application, json-web-key-generator, 
+is provided. https://github.com/mitreid-connect/json-web-key-generator
+
+To generate a key pair, open a command window, change the working directory
+to the ptmatchadapter-fril folder and run the following:
+$ java -jar etc/json-web-key-generator-0.4-SNAPSHOT-jar-with-dependencies.jar -t RSA -s 2048 -p > etc/ptmkey.json
+
+$ cp etc/ptmkey.json etc/ptmkey.pub.json
+
+Open ptmkey.json in a text editor and delete the first line "Full key:" and all 
+lines starting with and following the line with text, "Public key:". 
+Save the file and exit the editor.
+
+Open ptmkey.pub.json in a text editor and delete every line up to and including
+"Public key:". Save the file and exit the editor.
+
+After performing the above steps, ptkey.json has both the public and private
+key.  It should be kept private.  The file, ptmkey.pubj.json contains only the
+public key and is provided to the OAuth 2 authorization server when registering
+the ptmatch adapter as a client.
+
+Note that the files containing the public and private keys can be any name 
+and reside in any folder.
+
+
+Edit etc/ptmkey
 ## License
 
 Copyright 2016 The MITRE Corporation

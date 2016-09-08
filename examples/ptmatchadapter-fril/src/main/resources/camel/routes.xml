@@ -20,6 +20,9 @@
   
   <route>
     <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}{{ptmatchadapter.clientAuthRedirectPath}}"/>
+    <!-- Calls to the ptmatch adapter's client authorization redirect url
+         (normally from an OAuth authorization server) get relayed to the 
+         ServerAuthorizationService for the authorization code to get processed. -->
     <to uri="bean:serverAuthorizationService?method=processAuthorizationCode"/>
   </route>
  

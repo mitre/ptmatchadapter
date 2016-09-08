@@ -22,7 +22,6 @@ import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -433,7 +432,7 @@ public class ServerAuthorizationService {
             msgIn.setHeader(Exchange.HTTP_METHOD, "POST");
 
             msgIn.setHeader(Exchange.HTTP_QUERY, sb.toString());
-            LOG.info("Inside Processor to that requests access token");
+            LOG.info("Inside Processor that requests access token");
 
           }
         });
