@@ -54,7 +54,7 @@ public class PtmatchAdapter extends FatJarRouter {
   public void configure() {
     restConfiguration().component("jetty").bindingMode(RestBindingMode.json)
       .host(webServerIpAddr).port(webServerPort)
-    // Bug in Camel 2.16.2 (fixed since then, but not released) results in 
+    // Note: Bug in Camel 2.16.2 (fixed after that) results in 
     // exception at startup when multiple rest() services are specified in a 
     // Spring Boot application.
     // http://stackoverflow.com/questions/33291657/how-to-have-multiple-camel-rest-dsl-definitions-with-swagger
@@ -67,12 +67,6 @@ public class PtmatchAdapter extends FatJarRouter {
       .apiProperty("cors", "true");
     
     rest("/mgr").description("Record Matching System Adapter Management rest service")
-
-//
-//    .put().description("Updates or create a user").type(User.class)
-//        .to("bean:userService?method=updateUser")
-//
-//    .get("/findAll").description("Find all users").outTypeList(User.class)
 
       .get("/serverAuthorization").description("Retrieve list of server authorizations")
         .enableCORS(true)
@@ -114,14 +108,13 @@ public class PtmatchAdapter extends FatJarRouter {
         BareBonesBrowserLaunch.openURL("http://localhost:8082/index.html");
         LOG.info("============= After Open URL in Browser");
       }
-    }, 9000);
+    }, 10200);
 
-    
+
     LOG.info("============= Call Fat Jar Router Main");
     // Call Fat Jar Router main last because it never returns
     FatJarRouter.main(args);
     LOG.info("============= Returned from Fat Jar Router Main");
   }
-  
 
 }
