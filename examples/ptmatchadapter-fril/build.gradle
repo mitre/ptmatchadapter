@@ -1,6 +1,6 @@
 buildscript {
   ext {
-    springBootVersion = '1.3.3.RELEASE'
+    springBootVersion = '1.4.0.RELEASE'
   }
   repositories {
     mavenCentral()
@@ -48,7 +48,18 @@ node {
 
 dependencies {
   compile project(':ptmatchadapter-common')
-  compile('org.springframework.boot:spring-boot-starter')
+  //compile('org.springframework.boot:spring-boot-starter')
+  compile('org.springframework.boot:spring-boot-starter-web')
+
+  // Forces Spring version to be the version specified in this project
+  runtime group: 'org.springframework', name: 'spring-beans', version: "${springVersion}"
+  runtime group: 'org.springframework', name: 'spring-core', version: "${springVersion}"
+  runtime group: 'org.springframework', name: 'spring-context', version: "${springVersion}"
+  runtime group: 'org.springframework', name: 'spring-aop', version: "${springVersion}"
+  runtime group: 'org.springframework', name: 'spring-expression', version: "${springVersion}"
+  runtime group: 'org.springframework', name: 'spring-web', version: "${springVersion}"
+  runtime group: 'org.springframework', name: 'spring-webmvc', version: "${springVersion}"
+
   compile "org.apache.camel:camel-spring-boot:${camelVersion}"
   compile "org.apache.camel:camel-http4:${camelVersion}"
   compile "org.apache.camel:camel-jetty:${camelVersion}"
@@ -57,16 +68,20 @@ dependencies {
   compile "org.apache.camel:camel-jackson:${camelVersion}"
   // Camel-swagger-java has bugs affecting use w/ Spring Boot in 2.16.2
   // Try again in next Cample update
-  //compile "org.apache.camel:camel-swagger-java:${camelVersion}"
+  // compile "org.apache.camel:camel-swagger-java:${camelVersion}"
 
-  compile 'org.apache.commons:commons-csv:1.2'
-  compile 'org.apache.commons:commons-collections4:4.1'
+  compile 'org.apache.commons:commons-csv:1.2+'
+  compile 'org.apache.commons:commons-collections4:4.1+'
 
   compile "ca.uhn.hapi.fhir:hapi-fhir-base:${hapiFhirVersion}"
   compile "ca.uhn.hapi.fhir:hapi-fhir-structures-hl7org-dstu2:${hapiFhirVersion}"
 
-  compile 'com.samskivert:jmustache:1.12'
+  compile 'com.samskivert:jmustache:1.12+'
   
+  // Required by MITRE ID COnnect; fails if we don't grab it explicitly
+  compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.52+'
+  // MITRE ID Connect lib provides classes that work with JWK
+  compile group: 'org.mitre', name: 'openid-connect-common', version: "${mitreidConnectVersion}"
   
   compile 'org.jolokia:jolokia-spring:1.3.3'
   compile ('org.springframework.boot:spring-boot-actuator')

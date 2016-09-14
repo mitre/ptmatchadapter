@@ -18,7 +18,6 @@ package org.mitre.ptmatchadapter;
 
 import org.apache.camel.spring.boot.FatJarRouter;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportResource;
 
 @SpringBootApplication

@@ -18,7 +18,6 @@ package org.mitre.resourceloader;
 
 import org.apache.camel.spring.boot.FatJarRouter;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportResource;
 
@@ -29,7 +28,7 @@ public class ResourceLoader extends FatJarRouter {
 
   @Override
   public void configure() {
-   // from("timer:trigger").transform().simple("ref:myBean").to("log:out");
+    //from("timer:trigger").transform().simple("ref:myBean").to("log:out");
   }
 
 //  @Bean
