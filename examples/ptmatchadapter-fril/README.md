@@ -48,15 +48,18 @@ The Jolokia endpoint for JMX clients is at http://<host>:8778/jolokia
 
 ## Configuration for [HEART](http://openid.net/wg/heart/) profile
 ### Generating a JSON Public/Private Key Pair
-A pre-compiled version of the open source application, json-web-key-generator, is provided for convenience. https://github.com/mitreid-connect/json-web-key-generator
+A pre-compiled version of the open source application, json-web-key-generator, 
+is provided for convenience. https://github.com/mitreid-connect/json-web-key-generator
 
 To generate a key pair, open a command window, change the working directory
 to the ptmatchadapter-fril folder and run the following:
+```
 $ java -jar etc/json-web-key-generator-0.4-SNAPSHOT-jar-with-dependencies.jar -t RSA -s 2048 -p > etc/ptmkey.json
-
+```
 Make a copy of this file.
-
+```
 $ cp etc/ptmkey.json etc/ptmkey.pub.json
+```
 
 Open ptmkey.json in a text editor and delete the first line "Full key:" and all 
 lines starting with and following the line with text, "Public key:". 

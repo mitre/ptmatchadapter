@@ -54,7 +54,7 @@ public class AcknowledgmentBuilder {
     if (BundleType.MESSAGE.equals(request.getType())) {
       final Bundle ackMsg = new Bundle();
 
-      ObjectId id = new ObjectId();
+      final ObjectId id = new ObjectId();
       ackMsg.setId(id.toHexString());
 
       ackMsg.setType(BundleType.MESSAGE);
@@ -76,7 +76,7 @@ public class AcknowledgmentBuilder {
         .getResource();
 
     final MessageHeader msgHdr = new MessageHeader();
-    ObjectId id = new ObjectId();
+    final ObjectId id = new ObjectId();
     msgHdr.setId(id.toHexString());
     msgHdr.setTimestamp(new Date());
     msgHdr.setEvent(reqMsgHdr.getEvent());

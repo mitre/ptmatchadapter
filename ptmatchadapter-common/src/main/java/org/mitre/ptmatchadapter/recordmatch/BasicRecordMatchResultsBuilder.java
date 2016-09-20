@@ -115,7 +115,8 @@ public class BasicRecordMatchResultsBuilder {
     final List<BundleEntryComponent> bundleEntries = requestMsg.getEntry();
     for (BundleEntryComponent entry : bundleEntries) {
       Resource resource = entry.getResource();
-      if (ResourceType.Parameters.equals(resource.getResourceType())) {
+      if (resource != null 
+          && ResourceType.Parameters.equals(resource.getResourceType())) {
         // Add the Parameter entry to the response
         resultMsg.addEntry(entry);
       }

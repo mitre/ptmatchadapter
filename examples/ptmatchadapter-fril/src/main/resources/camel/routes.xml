@@ -5,7 +5,7 @@
 >
 
   <!-- See http://nigap.blogspot.fr/2014/12/camel-how-to-expose-static-resources-in.html -->
-  <!-- This route just initialized the static handler on the specified port number-->
+  <!-- This route just initialized the static content handler on the specified port number-->
   <route>
     <from uri="jetty:http://{{ptmatchadapter.web.ipaddress}}:{{ptmatchadapter.web.port}}?handlers=#staticPageHandler&amp;enableJmx=true" />
     <log message="Serving static content: ${header.HTTP_URI}" loggingLevel="INFO" />

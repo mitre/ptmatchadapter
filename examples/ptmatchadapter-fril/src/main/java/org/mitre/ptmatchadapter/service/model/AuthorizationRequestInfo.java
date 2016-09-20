@@ -20,6 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Structure used internally by ptmatch adapter to keep track of state of
+ * authorization request made to OAuth authorization server.
+ * 
  * @author Michael Los, mel@mitre.org
  *
  */

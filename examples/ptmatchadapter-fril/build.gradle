@@ -67,7 +67,7 @@ dependencies {
   compile "org.apache.camel:camel-jaxb:${camelVersion}"
   compile "org.apache.camel:camel-jackson:${camelVersion}"
   // Camel-swagger-java has bugs affecting use w/ Spring Boot in 2.16.2
-  // Try again in next Camel update
+  // Must use later version
   compile "org.apache.camel:camel-swagger-java:${camelVersion}"
 
   compile 'org.apache.commons:commons-csv:1.2+'
