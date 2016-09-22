@@ -16,6 +16,7 @@
  */
 package org.mitre.ptmatchadapter.util;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -28,7 +29,13 @@ import org.hl7.fhir.instance.model.StringType;
  * @author Michael Los, mel@mitre.org
  *
  */
-public class SimpleHumanNameComparator implements Comparator<HumanName> {
+public class SimpleHumanNameComparator
+    implements Comparator<HumanName>, Serializable {
+
+  /**
+   * serial version identifier
+   */
+  private static final long serialVersionUID = 3552012736460293854L;
 
   /**
    * Compares by family, suffix, given, and then use.

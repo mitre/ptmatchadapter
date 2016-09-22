@@ -38,8 +38,11 @@ public class AdapterConfiguration implements Processor {
             + "] has a header id = "
             + exchange.getIn().getHeader("id"));
     final Map<String, Object> headers = exchange.getIn().getHeaders();
-    for (String key : headers.keySet()) {
-      LOG.info("key: {}  value: {}", key, headers.get(key));
+    if (LOG.isDebugEnabled()) {
+      for (Map.Entry<String, Object> hdr : headers.entrySet()) {
+        LOG.debug("Camel Processor Property: key: {}  value: {}",
+            hdr.getKey(), hdr.getValue());
+      }
     }
   }
 }

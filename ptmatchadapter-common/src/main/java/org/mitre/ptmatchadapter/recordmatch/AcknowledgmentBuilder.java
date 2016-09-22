@@ -98,9 +98,15 @@ public class AcknowledgmentBuilder {
     LOG.info("Request Message Header ID: {}", idStr);
     if (idStr != null) {
       int pos = idStr.indexOf("/");
-      resp.setIdentifier(idStr.substring(pos + 1));
+      if (pos > 0) {
+        resp.setIdentifier(idStr.substring(pos + 1));
+      } else {
+        resp.setIdentifier(idStr);
+      }
     } else {
-      resp.setIdentifier(idStr);
+      final String errMsg = 
+          "Message Header has null identifier: SHOULD NEVER HAPPEN";
+      throw new IllegalStateException(errMsg);
     }
     resp.setCode(ResponseType.OK);
     msgHdr.setResponse(resp);

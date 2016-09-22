@@ -19,6 +19,7 @@ package org.mitre.ptmatchadapter.format;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -188,6 +189,7 @@ public class SimplePatientCsvFormat {
             // other supported parts return lists of string types
             Object namePart = nameCtx.getValue(part);
             if (namePart instanceof List<?>) {
+              @SuppressWarnings("unchecked")
               List<StringType> partList = (List<StringType>) namePart;
               if (partList.size() > 0) {
                 sb.append(partList.get(0).getValue());
@@ -266,7 +268,7 @@ public class SimplePatientCsvFormat {
    * @return the nameUses
    */
   public final String[] getNameUses() {
-    return nameUses;
+    return Arrays.copyOf(nameUses, nameUses.length);
   }
 
   /**

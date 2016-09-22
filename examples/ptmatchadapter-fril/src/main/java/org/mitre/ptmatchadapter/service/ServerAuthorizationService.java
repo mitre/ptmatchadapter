@@ -120,8 +120,9 @@ public class ServerAuthorizationService {
 
     // Write out message request headers
     if (LOG.isDebugEnabled()) {
-      for (String key : reqHdrs.keySet()) {
-        LOG.debug("handlOptions: req key: {} val: {}", key, reqHdrs.get(key));
+      for (Map.Entry<String, Object> hdr : reqHdrs.entrySet()) {
+        LOG.debug("handlOptions: req key: {} val: {}",
+            hdr.getKey(), hdr.getValue());
       }
     }
 
@@ -158,8 +159,9 @@ public class ServerAuthorizationService {
 
       // Write out response headers
       if (LOG.isDebugEnabled()) {
-        for (String key : respHdrs.keySet()) {
-          LOG.debug("handleOptions: resp key: {} val: {}", key, respHdrs.get(key));
+        for (Map.Entry<String, Object> hdr : respHdrs.entrySet()) {
+          LOG.debug("handlOptions: resp key: {} val: {}",
+              hdr.getKey(), hdr.getValue());
         }
       }
 
@@ -508,18 +510,19 @@ public class ServerAuthorizationService {
           int requiredPropCount = 0;
 
           // Extract access token, token type, etc from access token response
-          for (String key : accessResp.keySet()) {
+          for (Map.Entry<String, Object> entry : accessResp.entrySet()) {
+            String key = entry.getKey();
             if ("access_token".equals(key)) {
-              serverAuth.setAccessToken((String) accessResp.get(key));
+              serverAuth.setAccessToken((String) entry.getValue());
               requiredPropCount++;
             } else if ("token_type".equals(key)) {
-              serverAuth.setTokenType((String) accessResp.get(key));
+              serverAuth.setTokenType((String) entry.getValue());
             } else if ("scope".equals(key)) {
-              serverAuth.setScope((String) accessResp.get(key));
+              serverAuth.setScope((String) entry.getValue());
             } else if ("id_token".equals(key)) {
-              serverAuth.setIdToken((String) accessResp.get(key));
+              serverAuth.setIdToken((String) entry.getValue());
             } else if ("expires_in".equals(key)) {
-              Integer numSecs = (Integer) accessResp.get(key);
+              Integer numSecs = (Integer) entry.getValue();
               serverAuth.setExpiresAt(
                   new Date(System.currentTimeMillis() + (numSecs * 1000)));
               LOG.debug("Expiration: " + serverAuth.getExpiresAt().toString());

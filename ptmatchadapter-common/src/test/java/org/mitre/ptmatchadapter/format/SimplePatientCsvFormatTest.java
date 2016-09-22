@@ -85,21 +85,18 @@ public class SimplePatientCsvFormatTest {
     Patient patient = newPatient();
 
     
-    JXPathContext patientCtx = JXPathContext.newContext(patient);
+    final JXPathContext patientCtx = JXPathContext.newContext(patient);
     Pointer ptr = patientCtx.getPointer("identifier[system='SSN']");
     assertNotNull(ptr);
     Identifier id = (Identifier) ptr.getValue();
     if (id != null) {
       assertNotNull("ssn", id.getValue());
     }
-    Object obj1 = ptr.getNode();
 
     ptr = patientCtx.getPointer("name[use='official']");
     assertNotNull(ptr);
-    Object obj2 = ptr.getValue();
     ptr = patientCtx.getPointer("name[not(use)]");
     assertNotNull(ptr);
-    obj2 = ptr.getValue();
     
     String str = fmt.toCsv(patient);
     LOG.info("CSV: {}", str);

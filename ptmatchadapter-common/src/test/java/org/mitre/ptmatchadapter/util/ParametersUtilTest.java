@@ -23,8 +23,6 @@ import java.util.List;
 
 import org.hl7.fhir.instance.model.Parameters.ParametersParameterComponent;
 import org.hl7.fhir.instance.model.StringType;
-import org.hl7.fhir.instance.model.Type;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

@@ -360,7 +360,9 @@ public class RecordMatchRequestProcessor {
         deleteFolder(f);
       }
     }
-    file.delete();
+    if (!file.delete()) {
+      LOG.warn("Unable to delete folder: {}", file.getAbsolutePath());
+    }
   }
 
   /**
@@ -658,11 +660,12 @@ public class RecordMatchRequestProcessor {
 
         final ParametersParameterComponent ppc = ParametersUtil
             .findByName(searchExprParamList, RESOURCE_URL);
-        resourceUrl = ppc.getValue().toString();
 
-        if (resourceUrl == null) {
+        if (ppc.getValue() == null) {
           LOG.warn(
               "Required parameter, resourceUrl, is missing from record-match request!");
+        } else {
+          resourceUrl = ppc.getValue().toString();
         }
       }
     } else {
@@ -713,7 +716,9 @@ public class RecordMatchRequestProcessor {
     sb.append(String.format("%02d", fileSuffixRand.nextInt(999)));
     final File dir = new File(sb.toString());
     if (!dir.exists()) {
-      dir.mkdirs();
+      if (!dir.mkdirs()) {
+        LOG.warn("Unable to create folder: {}", dir.getAbsolutePath());
+      }
     }
 
     return dir;
@@ -745,7 +750,9 @@ public class RecordMatchRequestProcessor {
     }
 
     if (!f.exists()) {
-      f.createNewFile();
+      if (!f.createNewFile()) {
+        LOG.warn("Unable to create file: {}", f.getAbsolutePath());
+      }
     }
 
     String fullUrlBase = serverBase;

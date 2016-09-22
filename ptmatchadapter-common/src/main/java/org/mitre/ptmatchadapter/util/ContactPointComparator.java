@@ -16,6 +16,7 @@
  */
 package org.mitre.ptmatchadapter.util;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
 import org.hl7.fhir.instance.model.ContactPoint;
@@ -24,7 +25,13 @@ import org.hl7.fhir.instance.model.ContactPoint;
  * @author Michael Los, mel@mitre.org
  *
  */
-public class ContactPointComparator implements Comparator<ContactPoint> {
+public class ContactPointComparator
+    implements Comparator<ContactPoint>, Serializable {
+
+  /**
+   * serial vesion identifier
+   */
+  private static final long serialVersionUID = 4635457105945591503L;
 
   /**
    * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)

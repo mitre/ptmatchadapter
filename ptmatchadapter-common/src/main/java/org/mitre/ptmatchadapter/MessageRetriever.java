@@ -58,7 +58,7 @@ public class MessageRetriever {
    * Initiates a search for record match request messages from the
    * server configured at destinationUri.
    * 
-   * @return
+   * @return FHIR Bundle containing search results
    */
   public Bundle doSearch() {
     Bundle results = null;
