@@ -106,7 +106,27 @@
   </bean>
   
   <util:map id="oauthSessionStateMap" map-class="java.util.HashMap"/>
-   
+
+
+   <!-- Constructor argument is path to file containing private key in 
+        JSON Web Key format -->  
+  <bean id="ptmaKeyLocation" 
+      class="org.springframework.core.io.FileSystemResource">
+    <constructor-arg value="${ptmatchadapter.key.location}" />
+  </bean>
+ 
+  <bean id="ptmaKeyStore" 
+      class="org.mitre.jose.keystore.JWKSetKeyStore">
+    <property name="location" ref="ptmaKeyLocation"/>
+  </bean>
+
+  <bean id="authSigningSvc" 
+      class="org.mitre.jwt.signer.service.impl.DefaultJWTSigningAndValidationService">
+    <constructor-arg ref="ptmaKeyStore" />
+    <!--  See http://static.javadoc.io/com.nimbusds/nimbus-jose-jwt/2.21/com/nimbusds/jose/JWSAlgorithm.html -->
+    <property name="defaultSigningAlgorithmName" value="RS256" />
+  </bean>
+
   <bean id="serverAuthorizationService" 
       class="org.mitre.ptmatchadapter.service.ServerAuthorizationService">
     <property name="serverAuthorizations" ref="serverAuthorizations"/>
@@ -116,6 +136,8 @@
     <property name="clientId" value="${ptmatchadapter.oauth2.clientID}" />
     <property name="clientSecret" value="${ptmatchadapter.oauth2.clientSecret}" />
     <property name="sessionData" ref="oauthSessionStateMap" />
+    <!-- Signed JWT will be used instead of clientSecret when signing service is set -->
+    <property name ="jwtSigningService" ref="authSigningSvc" />
   </bean>
   
   <!-- Jolokia JVM Agent Configuration

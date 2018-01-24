@@ -159,35 +159,49 @@ public class RecordMatchRequestProcessor {
         // and use those to construct search Urls
         for (BundleEntryComponent entry : bundleEntries) {
           Resource r = entry.getResource();
-          LOG.debug("Found Resource type: " + r.getResourceType().toString());
-          if (ResourceType.Parameters.equals(r.getResourceType())) {
-            Parameters params = (Parameters) r;
-            List<ParametersParameterComponent> paramList = params.getParameter();
-            // Now look for the parameter with name, resourceType.
-            ParametersParameterComponent p = ParametersUtil.findByName(paramList,
-                RESOURCE_TYPE);
-            if (p != null) {
-              resourceType = p.getValue().toString();
-            }
-            // Find parameter that distinguishes between master and query sets
-            p = ParametersUtil.findByName(paramList, "type");
-            if (p != null) {
-              String val = p.getValue().toString();
-              if (val.equalsIgnoreCase(MASTER)) {
-                masterQryParams = params;
-                masterSearchUrl = buildSearchUrl(params);
-                masterServerBase = getServerBase(resourceType, masterQryParams);
-              } else if (val.equalsIgnoreCase(QUERY)) {
-                queryQryParams = params;
-                querySearchUrl = buildSearchUrl(params);
-                queryServerBase = getServerBase(resourceType, queryQryParams);
+          if (r != null && r.getResourceType() != null) {
+            LOG.debug("Found Resource type: {}", r.getResourceType().toString());
+            if (ResourceType.Parameters.equals(r.getResourceType())) {
+              Parameters params = (Parameters) r;
+              List<ParametersParameterComponent> paramList = params.getParameter();
+              // Now look for the parameter with name, resourceType.
+              ParametersParameterComponent p = ParametersUtil.findByName(paramList,
+                  RESOURCE_TYPE);
+              if (p != null) {
+                resourceType = p.getValue().toString();
+              }
+              // Find parameter that distinguishes between master and query sets
+              p = ParametersUtil.findByName(paramList, "type");
+              if (p != null) {
+                String val = p.getValue().toString();
+                if (val.equalsIgnoreCase(MASTER)) {
+                  masterQryParams = params;
+                  masterSearchUrl = buildSearchUrl(params);
+                  masterServerBase = getServerBase(resourceType, masterQryParams);
+                } else if (val.equalsIgnoreCase(QUERY)) {
+                  queryQryParams = params;
+                  querySearchUrl = buildSearchUrl(params);
+                  queryServerBase = getServerBase(resourceType, queryQryParams);
+                }
               }
             }
+          } else {
+            LOG.warn("Request Message entry is missing the ResourceType property");
+            final String errMsg = String.format(
+                "Unable to process request message. Missing Parameters Resource");
+            // Construct and return an error result
+            respBuilder = new RecordMatchResultsBuilder(bundle,
+                ResponseType.FATALERROR);
+            respBuilder.outcomeIssueDiagnostics(errMsg);
+            response = respBuilder.build();
+            getProducer().sendBody(getProducerEndpointUri(), response);
+            return;
           }
         }
 
         if (masterSearchUrl == null) {
-          final String errMsg = "Required Parameter for master record set is missing, bundle: "
+          final String errMsg = 
+              "Required Parameter for master record set is missing, bundle: "
               + bundle.getId();
           LOG.warn(errMsg);
           // Construct and return an error result
@@ -346,7 +360,9 @@ public class RecordMatchRequestProcessor {
         deleteFolder(f);
       }
     }
-    file.delete();
+    if (!file.delete()) {
+      LOG.warn("Unable to delete folder: {}", file.getAbsolutePath());
+    }
   }
 
   /**
@@ -644,11 +660,12 @@ public class RecordMatchRequestProcessor {
 
         final ParametersParameterComponent ppc = ParametersUtil
             .findByName(searchExprParamList, RESOURCE_URL);
-        resourceUrl = ppc.getValue().toString();
 
-        if (resourceUrl == null) {
+        if (ppc.getValue() == null) {
           LOG.warn(
               "Required parameter, resourceUrl, is missing from record-match request!");
+        } else {
+          resourceUrl = ppc.getValue().toString();
         }
       }
     } else {
@@ -699,7 +716,9 @@ public class RecordMatchRequestProcessor {
     sb.append(String.format("%02d", fileSuffixRand.nextInt(999)));
     final File dir = new File(sb.toString());
     if (!dir.exists()) {
-      dir.mkdirs();
+      if (!dir.mkdirs()) {
+        LOG.warn("Unable to create folder: {}", dir.getAbsolutePath());
+      }
     }
 
     return dir;
@@ -731,7 +750,9 @@ public class RecordMatchRequestProcessor {
     }
 
     if (!f.exists()) {
-      f.createNewFile();
+      if (!f.createNewFile()) {
+        LOG.warn("Unable to create file: {}", f.getAbsolutePath());
+      }
     }
 
     String fullUrlBase = serverBase;

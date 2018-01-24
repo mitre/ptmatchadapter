@@ -6,6 +6,7 @@ allprojects {
 subprojects {
   apply plugin: "java"
   apply plugin: 'eclipse'
+  apply plugin: 'findbugs'
   repositories {
       mavenCentral()
   }
@@ -22,15 +23,29 @@ subprojects {
   
   // gradle "extra" variables propagate to subprojects like a global variable
   ext {
-    springVersion = '4.3.+.RELEASE'
-    camelVersion = '2.16.2+'
+    springVersion = '4.3.2.RELEASE'
+    camelVersion = '2.17.3'
     hapiFhirVersion = '1.5'
     mongodbVersion = '3.2.1'
     slf4jVersion = '1.7.18+'
+    mitreidConnectVersion = '1.2.6'
     junitVersion = '4.12+'
   }
   
   task allDeps(type: DependencyReportTask){}
+
+  findbugs {
+    ignoreFailures true
+    reportsDir = file("$project.buildDir/reports/findbugs")
+  }
+
+  tasks.withType(FindBugs) {
+    reports {
+        xml.enabled false
+        html.enabled true
+    }
+  }
+
 }
 
 

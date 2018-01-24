@@ -61,7 +61,7 @@ public class RecordMatchRequestPassFilter {
               isRecordMatch = true;
               LOG.debug("PASS Record-Match Request");
             } else {
-              LOG.info("Unsupported Msg Type: event: {}, space: {}", evtCoding.getCode(), evtCoding.getSystem());
+              LOG.warn("Unsupported Msg Type: event: {}, space: {}", evtCoding.getCode(), evtCoding.getSystem());
             }
           } else {
             LOG.trace("Msg Hdr Response is not empty {}", msgHdr.getResponse());

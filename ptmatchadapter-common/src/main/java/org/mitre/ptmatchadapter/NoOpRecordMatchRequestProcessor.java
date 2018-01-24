@@ -17,6 +17,7 @@
 
 package org.mitre.ptmatchadapter;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.List;
@@ -38,7 +39,6 @@ import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.rest.client.IGenericClient;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
-import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 
 /**
@@ -155,7 +155,7 @@ public class NoOpRecordMatchRequestProcessor {
         LOG.info("### About to send no match result to endpoint");
         producer.sendBody(getProducerEndpointUri(), result);
 
-      } catch (Exception e) {
+      } catch (IOException e) {
         LOG.error("Processing bundle: {}", bundle.getId(), e);
       }
     } else {

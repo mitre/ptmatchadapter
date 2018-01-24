@@ -16,6 +16,7 @@
  */
 package org.mitre.ptmatchadapter.util;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
 import org.hl7.fhir.instance.model.StringType;
@@ -24,9 +25,15 @@ import org.hl7.fhir.instance.model.StringType;
  * @author Michael Los, mel@mitre.org
  *
  */
-public class StringTypeComparator implements Comparator<StringType> {
+public class StringTypeComparator
+    implements Comparator<StringType>, Serializable {
 
-  /* (non-Javadoc)
+  /**
+   * serial version identifier
+   */
+  private static final long serialVersionUID = 8425679505734235922L;
+
+  /**
    * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
    */
   @Override

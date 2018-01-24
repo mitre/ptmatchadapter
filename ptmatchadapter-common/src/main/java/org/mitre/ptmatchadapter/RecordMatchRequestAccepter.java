@@ -29,7 +29,7 @@ public class RecordMatchRequestAccepter {
       LoggerFactory.getLogger(RecordMatchRequestAccepter.class);
 
   public boolean doAcceptRequest(Bundle bundle) {
-    LOG.info("Inside doAcceptRequest(), bundle id: {}", bundle.getId());
+    LOG.debug("Inside doAcceptRequest(), bundle id: {}", bundle.getId());
     return true;
   }
 }

@@ -7,7 +7,17 @@ for an adapter between the ptmatch test harness and a record matching system.
 To run, set the working directory to the project top level (i.., ptmatchadapter)
 
 ## Configuring the Application
-Set properties in the file src/main/resources/applications.properties
+Set properties in the file src/main/resources/application.properties.
+
+Properties of particular interest include:
+
+* oauth2.authorization.server - full url to the OAuth 2.0 authorization server
+* oauth2.authorization.authCodeEndpoint - relative path to the endpoint at which to request authorization code
+* oauth2.authorization.accessTokenEndpoint - relative path to the endpoint at which to request an access token
+* ptmatchadapter.oauth2.clientID - client ID assigned by an OAuth 2 authorization server when the ptmatch adapter is registered as a client
+* ptmatchadapter.oauth2.clientSecret - code  provided by an OAuth 2.0 authorization server when the ptmatch adapter is registered as a client and the HEART profile is NOT used.
+* ptmatchadapter.key.location - absolute path to a file containing a JSON Web Key store with a key that will be used to authenticate with the authentication provider in accordance with the HEART profile.
+
 
 
 ## Running the Application
@@ -35,6 +45,67 @@ One can use an application like jconsole (provided with Oracle Java) or a
 hawt.io JMX client to view information about the record match job processing.
  
 The Jolokia endpoint for JMX clients is at http://<host>:8778/jolokia
+
+## Configuration for [HEART](http://openid.net/wg/heart/) profile
+### Generating a JSON Public/Private Key Pair
+A pre-compiled version of the open source application, json-web-key-generator, 
+is provided for convenience. https://github.com/mitreid-connect/json-web-key-generator
+
+To generate a key pair, open a command window, change the working directory
+to the ptmatchadapter-fril folder and run the following:
+```
+$ java -jar etc/json-web-key-generator-0.4-SNAPSHOT-jar-with-dependencies.jar -t RSA -s 2048 -p > etc/ptmkey.json
+```
+Make a copy of this file.
+```
+$ cp etc/ptmkey.json etc/ptmkey.pub.json
+```
+
+Open ptmkey.json in a text editor and delete the first line "Full key:" and all 
+lines starting with and following the line with text, "Public key:". 
+Save the file and exit the editor.
+
+Open ptmkey.pub.json in a text editor and delete every line up to and including
+"Public key:". 
+
+Enter the following two lines at the very beginning of the file (i.e., before
+the first character.
+```
+{"keys":
+ [
+```
+
+Enter the following two lines at the very end of the file (i.e., after the final 
+character).
+```
+  ]
+ }
+ ```
+ 
+
+Save the file and exit the editor.
+
+Open ptmkey.pub.json in a text editor.
+
+Delete all lines up to an including Public Key.
+
+Enter the following two lines at the very beginning of the file (i.e., before the first character.
+```
+{"keys":
+ [
+```
+
+Enter the following two lines at the very end of the file (i.e., after the final character).
+```
+  ]
+ }
+ ```
+
+After performing the above steps, ptkey.json has both the public and private key.  It should be considered private data.  The file, ptmkey.pub.json contains only the public key and is provided to the OAuth 2 authorization server when registering the ptmatch adapter as a client.
+
+Note that the files containing the public and private keys can be any name 
+and reside in any folder.
+
 
 ## License
 

@@ -30,6 +30,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mitre.ptmatchadapter.fril.RecordMatchRequestProcessor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * @author Michael Los, mel@mitre.org
  *

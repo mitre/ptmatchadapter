@@ -129,13 +129,13 @@ public class ServerAuthorization {
    * @return the expiration date-time
    */
   public final Date getExpiresAt() {
-    return expiresAt;
+    return new Date(expiresAt.getTime());
   }
   /**
    * @param expiration the expiration to set
    */
   public final void setExpiresAt(Date expiration) {
-    this.expiresAt = expiration;
+    this.expiresAt = expiration != null ? new Date (expiration.getTime()) : null;
   }
   /**
    * @return the scope

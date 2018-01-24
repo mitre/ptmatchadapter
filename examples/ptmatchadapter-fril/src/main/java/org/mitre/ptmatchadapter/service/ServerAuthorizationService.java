@@ -22,7 +22,6 @@ import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -48,6 +47,13 @@ import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+
+import org.mitre.jwt.signer.service.JWTSigningAndValidationService;
 
 /**
  * @author Michael Los, mel@mitre.org
@@ -73,6 +79,9 @@ public class ServerAuthorizationService {
   private String clientId;
   private String clientSecret;
 
+  /** JWT Signing and Validation Service with client key loaded */
+  private JWTSigningAndValidationService jwtSigningService;
+  
   private final SecureRandom rand = new SecureRandom();
 
   /** Map of variables in OAuth Session State. */
@@ -111,8 +120,9 @@ public class ServerAuthorizationService {
 
     // Write out message request headers
     if (LOG.isDebugEnabled()) {
-      for (String key : reqHdrs.keySet()) {
-        LOG.debug("handlOptions: req key: {} val: {}", key, reqHdrs.get(key));
+      for (Map.Entry<String, Object> hdr : reqHdrs.entrySet()) {
+        LOG.debug("handlOptions: req key: {} val: {}",
+            hdr.getKey(), hdr.getValue());
       }
     }
 
@@ -149,8 +159,9 @@ public class ServerAuthorizationService {
 
       // Write out response headers
       if (LOG.isDebugEnabled()) {
-        for (String key : respHdrs.keySet()) {
-          LOG.debug("handleOptions: resp key: {} val: {}", key, respHdrs.get(key));
+        for (Map.Entry<String, Object> hdr : respHdrs.entrySet()) {
+          LOG.debug("handlOptions: resp key: {} val: {}",
+              hdr.getKey(), hdr.getValue());
         }
       }
 
@@ -256,6 +267,8 @@ public class ServerAuthorizationService {
 
       return null;
     } else {
+      // an access token exists; try to renew 
+      
       LOG.warn("NOT IMPLEMENTED");
       return null;
     }
@@ -400,14 +413,12 @@ public class ServerAuthorizationService {
     }
 
     final StringBuilder sb = new StringBuilder(300);
+
     sb.append("grant_type=authorization_code");
     sb.append("&");
     sb.append("client_id=");
     try {
       sb.append(URLEncoder.encode(getClientId(), "UTF-8"));
-      sb.append("&");
-      sb.append("client_secret=");
-      sb.append(URLEncoder.encode(getClientSecret(), "UTF-8"));
       sb.append("&");
       sb.append("code=");
       sb.append(URLEncoder.encode(authCode, "UTF-8"));
@@ -418,6 +429,30 @@ public class ServerAuthorizationService {
       LOG.error("Usupported encoding used on access token request", e);
     }
 
+    if (jwtSigningService != null) {
+      try {
+        sb.append("&");
+        sb.append("client_assertion_type=");
+        sb.append(URLEncoder.encode(
+            "urn:ietf:params:oauth:client-assertion-type:jwt-bearer", "UTF-8"));
+      } catch (UnsupportedEncodingException e) {
+        // Should never happen, which is why we don't really do anything 
+        LOG.error("Usupported encoding used on client assertion type", e);
+      }
+      sb.append("&");
+      sb.append("client_assertion=");
+      sb.append(constructClaimSet());
+    } else {
+      try {
+        sb.append("&");
+        sb.append("client_secret=");
+        sb.append(URLEncoder.encode(getClientSecret(), "UTF-8"));
+      } catch (UnsupportedEncodingException e) {
+        // application was configured with a secret with bad chars
+        LOG.error("Usupported encoding used on client secret", e);
+      }
+    }
+  
     final StringBuilder reqUrl = new StringBuilder(200);
     reqUrl.append(stripScheme(getAuthorizationServer()));
     reqUrl.append(getAccessTokenEndpoint());
@@ -433,7 +468,7 @@ public class ServerAuthorizationService {
             msgIn.setHeader(Exchange.HTTP_METHOD, "POST");
 
             msgIn.setHeader(Exchange.HTTP_QUERY, sb.toString());
-            LOG.info("Inside Processor to that requests access token");
+            LOG.trace("Inside Processor that requests access token");
 
           }
         });
@@ -448,7 +483,7 @@ public class ServerAuthorizationService {
       final Message out = exchange.getOut();
 
       for (String key : out.getHeaders().keySet()) {
-        LOG.info("access token response msg hdr: {}  val: {}", key,
+        LOG.debug("access token response msg hdr: {}  val: {}", key,
             out.getHeader(key, String.class));
       }
 
@@ -475,21 +510,22 @@ public class ServerAuthorizationService {
           int requiredPropCount = 0;
 
           // Extract access token, token type, etc from access token response
-          for (String key : accessResp.keySet()) {
+          for (Map.Entry<String, Object> entry : accessResp.entrySet()) {
+            String key = entry.getKey();
             if ("access_token".equals(key)) {
-              serverAuth.setAccessToken((String) accessResp.get(key));
+              serverAuth.setAccessToken((String) entry.getValue());
               requiredPropCount++;
             } else if ("token_type".equals(key)) {
-              serverAuth.setTokenType((String) accessResp.get(key));
+              serverAuth.setTokenType((String) entry.getValue());
             } else if ("scope".equals(key)) {
-              serverAuth.setScope((String) accessResp.get(key));
+              serverAuth.setScope((String) entry.getValue());
             } else if ("id_token".equals(key)) {
-              serverAuth.setIdToken((String) accessResp.get(key));
+              serverAuth.setIdToken((String) entry.getValue());
             } else if ("expires_in".equals(key)) {
-              Integer numSecs = (Integer) accessResp.get(key);
+              Integer numSecs = (Integer) entry.getValue();
               serverAuth.setExpiresAt(
                   new Date(System.currentTimeMillis() + (numSecs * 1000)));
-              LOG.info("Expiration: " + serverAuth.getExpiresAt().toString());
+              LOG.debug("Expiration: " + serverAuth.getExpiresAt().toString());
             }
           }
           if (requiredPropCount < 1) {
@@ -518,6 +554,42 @@ public class ServerAuthorizationService {
     return result;
   }
 
+  private String constructClaimSet () {
+
+    final JWTClaimsSet.Builder claimsSet = new JWTClaimsSet.Builder();
+
+    claimsSet.issuer(getClientId());
+    claimsSet.subject(getClientId());
+    
+    final StringBuilder audience = new StringBuilder(200);
+    audience.append(getAuthorizationServer());
+    audience.append(getAccessTokenEndpoint());
+    claimsSet.audience(Lists.newArrayList(audience.toString()));
+
+    claimsSet.jwtID(UUID.randomUUID().toString());
+
+    // TODO: make this configurable
+    final Date exp = new Date(System.currentTimeMillis() + (60 * 1000)); // auth good for 60 seconds
+    claimsSet.expirationTime(exp);
+
+    final Date now = new Date(System.currentTimeMillis());
+    claimsSet.issueTime(now);
+    claimsSet.notBeforeTime(now);
+
+    final JWSAlgorithm alg = jwtSigningService.getDefaultSigningAlgorithm();
+
+    final JWSHeader header = new JWSHeader(alg, 
+        null, null, null, null, null, null, null, null, null,
+        jwtSigningService.getDefaultSignerKeyId(), null, null);
+    final SignedJWT jwt = new SignedJWT(header, claimsSet.build());
+
+    jwtSigningService.signJwt(jwt, alg);
+    final String str = jwt.serialize();
+    LOG.info("signed claim set: {}", str);
+    return str;
+  }
+
+  
   /**
    * Construct and return the redirectUri using the provided scheme, host, and port
    * and configured redirect path.
@@ -707,6 +779,23 @@ public class ServerAuthorizationService {
    */
   public final void setClientSecret(String clientSecret) {
     this.clientSecret = clientSecret;
+  }
+
+
+  /**
+   * @return the jwtSigningService
+   */
+  public final JWTSigningAndValidationService getJwtSigningService() {
+    return jwtSigningService;
+  }
+
+
+  /**
+   * @param jwtSigningService the jwtSigningService to set
+   */
+  public final void setJwtSigningService(
+      JWTSigningAndValidationService jwtSigningService) {
+    this.jwtSigningService = jwtSigningService;
   }
 
 }

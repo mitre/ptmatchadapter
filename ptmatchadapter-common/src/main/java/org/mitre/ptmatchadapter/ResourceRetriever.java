@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import ca.uhn.fhir.rest.client.IGenericClient;
 import ca.uhn.fhir.rest.client.interceptor.LoggingInterceptor;
-import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.method.SearchStyleEnum;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 
@@ -79,14 +78,14 @@ public class ResourceRetriever {
 
 
   /**
-   * @return the client
+   * @return the FHIR client
    */
   public final IGenericClient getClient() {
     return client;
   }
 
   /**
-   * @param client the client to set
+   * @param client the FHIR client to set
    */
   public final void setClient(IGenericClient client) {
     this.client = client;

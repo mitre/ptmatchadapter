@@ -38,7 +38,8 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
  *
  */
 public class MessageRetriever {
-  private static final Logger LOG = LoggerFactory.getLogger(MessageRetriever.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(MessageRetriever.class);
 
   private IGenericClient client;
 
@@ -57,17 +58,18 @@ public class MessageRetriever {
    * Initiates a search for record match request messages from the
    * server configured at destinationUri.
    * 
-   * @return
+   * @return FHIR Bundle containing search results
    */
   public Bundle doSearch() {
     Bundle results = null;
 
     final ServerAuthorization serverAuthorization =
-        AuthorizationUtil.findServerAuthorization(serverAuthorizations, client.getServerBase());
+        AuthorizationUtil.findServerAuthorization(
+            serverAuthorizations, client.getServerBase());
 
     BearerTokenAuthInterceptor authInterceptor = null;
     if (serverAuthorization != null) {
-      // register authorization interceptor with the client
+      // register authorization interceptor with the HAPI FHIR client
       LOG.info("assigning bearing token interceptor, {}", serverAuthorization.getAccessToken() );
       authInterceptor = new BearerTokenAuthInterceptor(serverAuthorization.getAccessToken());
       client.registerInterceptor(authInterceptor);

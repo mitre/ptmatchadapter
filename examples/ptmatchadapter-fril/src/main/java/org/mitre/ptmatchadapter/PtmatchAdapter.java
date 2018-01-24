@@ -53,26 +53,20 @@ public class PtmatchAdapter extends FatJarRouter {
   @Override
   public void configure() {
     restConfiguration().component("jetty").bindingMode(RestBindingMode.json)
-      .host(webServerIpAddr).port(webServerPort); 
-    // Bug in Camel 2.16.2 (fixed since then, but not released) results in 
+      .host(webServerIpAddr).port(webServerPort)
+    // Note: Bug in Camel 2.16.2 (fixed after that) results in 
     // exception at startup when multiple rest() services are specified in a 
     // Spring Boot application.
     // http://stackoverflow.com/questions/33291657/how-to-have-multiple-camel-rest-dsl-definitions-with-swagger
     // https://issues.apache.org/jira/browse/CAMEL-9247
       // add swagger api-doc out of the box
-//      .apiContextPath("/api-doc")
-//      .apiProperty("api.title", "Patient Matcher FRIL Adapter API")
-//      .apiProperty("api.version", "0.0.1")
-//      //and enable CORS
-//      .apiProperty("cors", "true");
+      .apiContextPath("/api-doc")
+      .apiProperty("api.title", "Patient Matcher FRIL Adapter API")
+      .apiProperty("api.version", "0.0.1")
+      //and enable CORS
+      .apiProperty("cors", "true");
     
     rest("/mgr").description("Record Matching System Adapter Management rest service")
-
-//
-//    .put().description("Updates or create a user").type(User.class)
-//        .to("bean:userService?method=updateUser")
-//
-//    .get("/findAll").description("Find all users").outTypeList(User.class)
 
       .get("/serverAuthorization").description("Retrieve list of server authorizations")
         .enableCORS(true)
@@ -114,14 +108,13 @@ public class PtmatchAdapter extends FatJarRouter {
         BareBonesBrowserLaunch.openURL("http://localhost:8082/index.html");
         LOG.info("============= After Open URL in Browser");
       }
-    }, 9000);
+    }, 10200);
 
-    
+
     LOG.info("============= Call Fat Jar Router Main");
     // Call Fat Jar Router main last because it never returns
     FatJarRouter.main(args);
     LOG.info("============= Returned from Fat Jar Router Main");
   }
-  
 
 }
